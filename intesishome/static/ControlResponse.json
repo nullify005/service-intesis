@@ -1,0 +1,254 @@
+{
+  "config": {
+    "token": 176207407,
+    "pushToken": "channel-dc90024ca226e2ddad1cad758201d345",
+    "lastAppVersion": "2.8",
+    "forceUpdate": 0,
+    "setDelay": 0.7,
+    "serverIP": "212.36.84.207",
+    "serverPort": 5210,
+    "hash": "1ea07777a7c19adb6f8e41ac340a8f723797d9cc",
+    "inst": [
+      {
+        "id": 1,
+        "order": 1,
+        "name": "First installation",
+        "devices": [
+          {
+            "id": "127934703953",
+            "name": "Home AC Unit",
+            "familyId": 3840,
+            "modelId": 79,
+            "installationId": 75447,
+            "zoneId": 78360,
+            "order": 1,
+            "widgets": [
+              15,
+              3,
+              5,
+              7,
+              9,
+              13,
+              52,
+              53,
+              61,
+              62,
+              63,
+              64
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "status": {
+    "hash": "0f037a715b304d8a41089bdceb9f45d8af0aa2f7",
+    "status": [
+      {
+        "deviceId": 127934703953,
+        "uid": 1,
+        "value": 1
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 2,
+        "value": 1
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 4,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 5,
+        "value": 3
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 9,
+        "value": 200
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 10,
+        "value": 210
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 12,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 13,
+        "value": 3907
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 14,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 15,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 34,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 35,
+        "value": 160
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 36,
+        "value": 300
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 61,
+        "value": 31
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 62,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 64,
+        "value": 1054
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 65,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 66,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 67,
+        "value": 31
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 181,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 182,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 183,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 184,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 185,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 186,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 187,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 188,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 189,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 190,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 192,
+        "value": 65535
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 50000,
+        "value": 1
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 50001,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 50002,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 50003,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 50004,
+        "value": 240
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 50005,
+        "value": 280
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 50006,
+        "value": 190
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 50007,
+        "value": 230
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 50008,
+        "value": 1
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 50010,
+        "value": 0
+      },
+      {
+        "deviceId": 127934703953,
+        "uid": 60002,
+        "value": 200
+      }
+    ]
+  }
+}

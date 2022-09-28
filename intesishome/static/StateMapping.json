@@ -1,0 +1,192 @@
+{
+    "1": {"name": "power", "values": {"0": "off", "1": "on"}},
+    "2": {
+        "name": "mode",
+        "values": {"0": "auto", "1": "heat", "2": "dry", "3": "fan", "4": "cool"}
+    },
+    "4": {
+        "name": "fan_speed"
+    },
+    "5": {
+        "name": "vvane",
+        "values": {
+            "0": "auto/stop",
+            "1": "manual1",
+            "2": "manual2",
+            "3": "manual3",
+            "4": "manual4",
+            "5": "manual5",
+            "6": "manual6",
+            "7": "manual7",
+            "8": "manual8",
+            "9": "manual9",
+            "10": "swing"
+        }
+    },
+    "6": {
+        "name": "hvane",
+        "values": {
+            "0": "auto/stop",
+            "10": "swing",
+            "1": "manual1",
+            "2": "manual2",
+            "3": "manual3",
+            "4": "manual4",
+            "5": "manual5"
+        }
+    },
+    "9": {"name": "setpoint"},
+    "10": {"name": "temperature"},
+    "12": {"name": "remote_controller_lock"},
+    "13": {"name": "working_hours"},
+    "14": {"name": "alarm_status"},
+    "15": {"name": "error_code"},
+    "34": {"name": "quiet_mode", "values": {"0": "off", "1": "on"}},
+    "35": {"name": "setpoint_min"},
+    "36": {"name": "setpoint_max"},
+    "37": {"name": "outdoor_temp"},
+    "38": {"name": "water_outlet_temperature"},
+    "39": {"name": "water_inlet_temperature"},
+    "42": {
+        "name": "climate_working_mode",
+        "values": {"0": "comfort", "1": "eco", "2": "powerful"}
+    },
+    "44": {
+        "name": "tank_working_mode",
+        "values": {"0": "comfort", "1": "eco", "2": "powerful"}
+    },
+    "45": {"name": "tank_water_temperature"},
+    "46": {"name": "solar_status"},
+    "48": {"name": "thermoshift_heat_eco"},
+    "49": {"name": "thermoshift_cool_eco"},
+    "50": {"name": "thermoshift_heat_powerful"},
+    "51": {"name": "thermoshift_cool_powerful"},
+    "52": {"name": "thermoshift_tank_eco"},
+    "53": {"name": "thermoshift_tank_powerful"},
+    "54": {"name": "error_reset"},
+    "55": {"name": "heat_thermo_shift"},
+    "56": {"name": "cool_water_setpoint_temperature"},
+    "57": {"name": "tank_setpoint_temperature"},
+    "58": {
+        "name": "operating_mode",
+        "values": {
+            "0": "maintenance",
+            "1": "heat",
+            "2": "heat+tank",
+            "3": "tank",
+            "4": "cool+tank",
+            "5": "cool",
+            "6": "auto",
+            "7": "auto+tank"
+        }
+    },
+    "60": {"name": "heat_8_10"},
+    "61": {"name": "config_mode_map"},
+    "62": {"name": "runtime_mode_restrictions"},
+    "63": {"name": "config_horizontal_vanes"},
+    "64": {"name": "config_vertical_vanes"},
+    "65": {"name": "config_quiet"},
+    "66": {"name": "config_confirm_off"},
+    "67": {
+        "name": "config_fan_map",
+        "values": {
+            "6": {"1": "low", "2": "high"},
+            "7": {"0": "auto", "1": "low", "2": "high"},
+            "14": {"1": "low", "2": "medium", "3": "high"},
+            "15": {"0": "auto", "1": "low", "2": "medium", "3": "high"},
+            "30": {"1": "quiet", "2": "low", "3": "medium", "4": "high"},
+            "31": {"0": "auto", "1": "quiet", "2": "low", "3": "medium", "4": "high"},
+            "62": {"1": "quiet", "2": "low", "3": "medium", "4": "high", "5": "max"},
+            "63": {"0": "auto", "1": "quiet", "2": "low", "3": "medium", "4": "high", "5": "max"},
+            "126": {
+                "1": "speed 1",
+                "2": "speed 2",
+                "3": "speed 3",
+                "4": "speed 4",
+                "5": "speed 5",
+                "6": "speed 6"
+            },
+            "127": {
+                "0": "auto",
+                "1": "speed 1",
+                "2": "speed 2",
+                "3": "speed 3",
+                "4": "speed 4",
+                "5": "speed 5",
+                "6": "speed 6"
+            }
+        }
+    },
+    "68": {"name": "instant_power_consumption"},
+    "69": {"name": "accumulated_power_consumption"},
+    "75": {"name": "config_operating_mode"},
+    "77": {"name": "config_vanes_pulse"},
+    "80": {"name": "aquarea_tank_consumption"},
+    "81": {"name": "aquarea_cool_consumption"},
+    "82": {"name": "aquarea_heat_consumption"},
+    "83": {"name": "heat_high_water_set_temperature"},
+    "84": {"name": "heating_off_temperature"},
+    "87": {"name": "heater_setpoint_temperature"},
+    "90": {"name": "water_target_temperature"},
+    "95": {
+        "name": "heat_interval",
+        "values": {
+            "1": 30,
+            "2": 60,
+            "3": 90,
+            "4": 120,
+            "5": 150,
+            "6": 180,
+            "7": 210,
+            "8": 240,
+            "9": 270,
+            "10": 300,
+            "11": 330,
+            "12": 360,
+            "13": 390,
+            "14": 420,
+            "15": 450,
+            "16": 480,
+            "17": 510,
+            "18": 540,
+            "19": 570,
+            "20": 600
+        }
+    },
+    "107": {"name": "aquarea_working_hours"},
+    "123": {"name": "ext_thermo_control", "values": {"85": "off", "170": "on"}},
+    "124": {"name": "tank_present", "values": {"85": "off", "170": "on"}},
+    "125": {"name": "solar_priority", "values": {"85": "off", "170": "on"}},
+    "134": {"name": "heat_low_outdoor_set_temperature"},
+    "135": {"name": "heat_high_outdoor_set_temperature"},
+    "136": {"name": "heat_low_water_set_temperature"},
+    "137": {"name": "farenheit_type"},
+    "140": {"name": "extremes_protection_status"},
+    "144": {"name": "error_code"},
+    "148": {"name": "extremes_protection"},
+    "149": {"name": "binary_input"},
+    "153": {"name": "config_binary_input"},
+    "168": {"name": "uid_binary_input_on_off"},
+    "169": {"name": "uid_binary_input_occupancy"},
+    "170": {"name": "uid_binary_input_window"},
+    "181": {"name": "mainenance_w_reset"},
+    "182": {"name": "mainenance_wo_reset"},
+    "183": {"name": "filter_clean"},
+    "184": {"name": "filter_due_hours"},
+    "185": {"name": "uid_185"},
+    "186": {"name": "uid_186"},
+    "191": {"name": "uid_binary_input_sleep_mode"},
+    "192": {"name": "error_address"},
+    "50000": {
+        "name": "external_led",
+        "values": {"0": "off", "1": "on", "2": "blinking only on change"}
+    },
+    "50001": {"name": "internal_led", "values": {"0": "off", "1": "on"}},
+    "50002": {"name": "internal_temperature_offset"},
+    "50003": {"name": "temp_limitation", "values": {"0": "off", "2": "on"}},
+    "50004": {"name": "cool_temperature_min"},
+    "50005": {"name": "cool_temperature_max"},
+    "50006": {"name": "heat_temperature_min"},
+    "50007": {"name": "heat_temperature_min"},
+    "60002": {"name": "rssi"}
+}
