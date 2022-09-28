@@ -1,6 +1,7 @@
 package intesishome
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,13 +11,18 @@ import (
 	"strings"
 )
 
+//go:embed "assets/StateMapping.json"
+var mappingBody []byte
+
 func (c *Connection) Status(device int64) (state map[string]interface{}) {
 	state = make(map[string]interface{})
 	response := callControl(c)
 	var stateMapping map[string]interface{}
-	d, _ := os.Getwd()
-	body, _ := os.ReadFile(d + "/intesishome/" + mappingPayload)
-	_ = json.Unmarshal(body, &stateMapping)
+	err := json.Unmarshal(mappingBody, &stateMapping)
+	if err != nil {
+		fmt.Printf("problem unmarshalling the statemapping when inspecting capabilities")
+		os.Exit(1)
+	}
 	for _, s := range response.Status.Status {
 		if s.DeviceID != device {
 			continue
@@ -56,32 +62,39 @@ func (d *Device) String() (s string) {
 	return
 }
 
-func (d *DeviceState) String() (s string) {
-	var m map[string]interface{}
-	data, _ := json.Marshal(d)
-	json.Unmarshal(data, &m)
-	for k, v := range m {
-		s += fmt.Sprintf("%s: %.1f ", k, v)
-	}
-	return
-}
-
 func capabilities(widgets []int) (caps []string) {
+	var stateMapping map[string]interface{}
+	err := json.Unmarshal(mappingBody, &stateMapping)
+	if err != nil {
+		fmt.Printf("problem unmarshalling the statemapping when inspecting capabilities")
+		os.Exit(1)
+	}
 	for _, v := range widgets {
-		caps = append(caps, Capability[v])
+		uid := fmt.Sprint(v)
+		_, ok := stateMapping[uid]
+		if !ok {
+			// mapping doesn't exist
+			fmt.Printf("widget: %v has no mapping?", v)
+			continue
+		}
+		name := stateMapping[uid].(map[string]interface{})["name"].(string)
+		caps = append(caps, name)
 	}
 	return
 }
 
 func callControl(self *Connection) ControlResponse {
+	if self.Endpoint == "" {
+		self.Endpoint = ApiEndpoint
+	}
 	controlResponse := &ControlResponse{}
 	if self.Mock != "" {
 		return mockResponse(self)
 	}
 	form := statusForm(self.Username, self.Password)
-	resp, err := http.PostForm(ApiEndpoint, form)
+	resp, err := http.PostForm(self.Endpoint, form)
 	if err != nil {
-		fmt.Printf("problem contacting endpoint: %v with: %v\n", ApiEndpoint, err)
+		fmt.Printf("problem contacting endpoint: %v with: %v\n", self.Endpoint, err)
 		os.Exit(1)
 	}
 	body, err := io.ReadAll(resp.Body)
