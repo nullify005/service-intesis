@@ -1,0 +1,5 @@
+.vscode
+.tool-versions
+Dockerfile
+package.sh
+README.MD

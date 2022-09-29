@@ -14,6 +14,7 @@ import (
 //go:embed "assets/StateMapping.json"
 var mappingBody []byte
 
+// TODO: only map the values if we're asking to (probably via the CLI)
 func (c *Connection) Status(device int64) (state map[string]interface{}) {
 	state = make(map[string]interface{})
 	response := callControl(c)
@@ -43,7 +44,6 @@ func (c *Connection) Status(device int64) (state map[string]interface{}) {
 		key := fmt.Sprint(s.Value)
 		values := stateMapping[uid].(map[string]interface{})["values"].(map[string]interface{})
 		state[name] = values[key]
-		// fmt.Printf("%v: %v\n", name, s.Value)
 	}
 	return
 }
@@ -74,7 +74,7 @@ func capabilities(widgets []int) (caps []string) {
 		_, ok := stateMapping[uid]
 		if !ok {
 			// mapping doesn't exist
-			fmt.Printf("widget: %v has no mapping?", v)
+			fmt.Printf("widget: %v has no mapping?\n", v)
 			continue
 		}
 		name := stateMapping[uid].(map[string]interface{})["name"].(string)
