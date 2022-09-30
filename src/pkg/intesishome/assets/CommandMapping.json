@@ -1,0 +1,64 @@
+{
+    "power": {"uid": 1, "values": {"off": 0, "on": 1}},
+    "mode": {"uid": 2, "values": {"auto": 0, "heat": 1, "dry": 2, "fan": 3, "cool": 4}},
+    "operating_mode": {
+        "uid": 58,
+        "values": {
+            "heat": 1,
+            "heat+tank": 2,
+            "tank": 3,
+            "cool+tank": 4,
+            "cool": 5,
+            "auto": 6,
+            "auto+tank": 7
+        }
+    },
+    "climate_working_mode": {
+        "uid": 42,
+        "values": {"comfort": 0, "eco": 1, "powerful": 2}
+    },
+    "fan_speed": {"uid": 4},
+    "vvane": {
+        "uid": 5,
+        "values": {
+            "auto/stop": 0,
+            "swing": 10,
+            "manual1": 1,
+            "manual2": 2,
+            "manual3": 3,
+            "manual4": 4,
+            "manual5": 5
+        }
+    },
+    "hvane": {
+        "uid": 6,
+        "values": {
+            "auto/stop": 0,
+            "swing": 10,
+            "manual1": 1,
+            "manual2": 2,
+            "manual3": 3,
+            "manual4": 4,
+            "manual5": 5
+        }
+    },
+    "setpoint": {"uid": 9},
+    "quiet": {"uid": 34, "values": {"off": 0, "on": 1}},
+    "tank": {"uid": 44, "values": {"comfort": 0, "eco": 1, "powerful": 2}},
+    "reset_eror": {"uid": 54, "values": {"on": 1}},
+    "tank_setpoint_temperature": {"uid": 57},
+    "thermoshift_heat_eco": {"uid": 48, "min": 0, "max": 5},
+    "thermoshift_cool_eco": {"uid": 49, "min": 0, "max": 5},
+    "thermoshift_heat_powerful": {"uid": 50, "min": 0, "max": 5},
+    "thermoshift_cool_powerful": {"uid": 51, "min": 0, "max": 5},
+    "thermoshift_tank_eco": {"uid": 52, "min": 0, "max": 10},
+    "thermoshift_tank_powerful": {"uid": 53, "min": 0, "max": 10},
+    "heat_thermo_shift": {"uid": 55, "min": -5, "max": 5},
+    "cool_water_setpoint_temperature": {"uid": 56},
+    "heat_high_water_set_temperature": {"uid": 83, "min": 25, "max": 55},
+    "heat_low_outdoor_set_temperature": {"uid": 134, "min": -15, "max": 15},
+    "heat_high_outdoor_set_temperature": {"uid": 135, "min": -15, "max": 15},
+    "heat_low_water_set_temperature": {"uid": 136, "min": 25, "max": 55},
+    "resync": {"uid": 143, "values": {"on": 1}},
+    "remote_control_block": {"uid": 12, "values": {"on": 2, "off": 0}}
+}

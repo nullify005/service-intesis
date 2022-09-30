@@ -3,10 +3,18 @@
 a partial golang port of the HomeAssistant Intesis Home controller located here
 https://github.com/jnimmo/pyIntesisHome
 
-it's also a k8s deployment which exports intesis home based HVAC state to prometheus
-it's also meant to support controlling the HVAC (but is a work in progress)
+this version allows for:
 
-I'm using it to monitor & control my HVAC via k8s on some Raspberry Pi 3's
+* querying device state
+* setting various values to HVAC entities
+* monitoring the state & exporting the metrics out to prometheus
+
+# notice
+
+at no point am I associated with the Intesis product at all, nor do I have the
+spec of the API, I'm just following what's already out there
+
+for license information have a look at `LICENSE`
 
 # testing
 
@@ -14,14 +22,28 @@ I'm using it to monitor & control my HVAC via k8s on some Raspberry Pi 3's
 
 # running
 
-`go run . -username x -password x -device x`
+list your devices
+
+`go run cmd/service-intesis.go -username x -password y`
+
+once you get the device list query it's status
+
+`go run cmd/service-intesis.go -username x -password y -device z`
+
+you can then command the device to change state
+
+`go run cmd/service-intesis.go -username x -password y -device z -set thing -value value`
 
 where:
-    * username is the intesis cloud username
-    * password is ...
-    * device is the HVAC device which has the intesis plugged into it
 
-without `-device` will list the devices configured
+* thing can be either the uid of a control or it's name
+* value can be a named enum or it's actual value
+
+finally you can continuously monitor the state & export the metrics out for prometheus scraping
+
+`go run cmd/service-intesis.go -monitor -device x`
+
+in `-monitor` we expect secrets to be located at `/.secrets/creds.yaml` containing the username & password
 
 # building
 
@@ -29,7 +51,4 @@ without `-device` will list the devices configured
 
 # TODO
 
-* `-monitor` flag
-* prometheus metrics exporting
-* implementation of command setting
-* moving the cli to a package of it's own
+loads

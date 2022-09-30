@@ -83,6 +83,8 @@ func TestState(t *testing.T) {
 	}
 }
 
+// TODO: write tests for the command push & command mappings
+
 func viaTestServer() (c *Connection) {
 	c = connection(testServer.URL)
 	return

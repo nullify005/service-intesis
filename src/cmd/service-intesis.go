@@ -20,10 +20,12 @@ var (
 	flagMonitor         = flag.Bool("monitor", false, "continuously monitor the state of device")
 	flagInterval        = flag.Int("interval", 120, "the interval between state collections")
 	flagDevice          = flag.Int64("device", 0, "get status from the device")
+	flagValue           = flag.String("value", "", "the set value (requires -set and -device)")
 	flagUsername        = flag.String("username", "", "intesis cloud username")
 	flagPassword        = flag.String("password", "", "intesis cloud password")
 	flagListen          = flag.String("listen", "127.0.0.1:2112", "the addr:port to listen on for HTTP requests")
 	flagSecrets         = flag.String("secrets", "/.secrets/creds.yaml", "path to the credentials yaml")
+	flagSet             = flag.String("set", "", "perform a set with value (requires -value and -device)")
 	username     string = ""
 	password     string = ""
 )
@@ -89,6 +91,17 @@ func devices() {
 	os.Exit(0)
 }
 
+func set(device int64) {
+	if *flagValue == "" {
+		fmt.Println("unable to set, the value is empty!")
+		os.Exit(1)
+	}
+	conn := connection()
+	uid, value := conn.MapCommand(*flagSet, *flagValue)
+	conn.Set(device, uid, value)
+	os.Exit(0)
+}
+
 func creds() {
 	if *flagUsername != "" {
 		username = *flagUsername
@@ -110,6 +123,9 @@ func main() {
 	creds()
 	if *flagMonitor {
 		monitor(*flagDevice)
+	}
+	if *flagSet != "" {
+		set(*flagDevice)
 	}
 	if *flagDevice != 0 {
 		status(*flagDevice)

@@ -3,12 +3,17 @@ package intesishome
 const ApiEndpoint string = "https://user.intesishome.com/api.php/get/control"
 const StatusCommand string = `{"status":{"hash":"x"},"config":{"hash":"x"}}`
 const StatusVersion string = "1.8.5"
+const WriteCommand string = `{"command":"set","data":{"deviceId":%v,"uid":%v,"value":%v,"seqNo":0}}`
+const WriteAuth string = `{"command":"connect_req","data":{"token":%v}}`
 
 type Connection struct {
-	Username string
-	Password string
-	Endpoint string
-	Mock     bool
+	Username   string
+	Password   string
+	Endpoint   string
+	Mock       bool
+	ServerIP   string
+	ServerPort int
+	Token      int
 }
 
 type ControlResponse struct {
