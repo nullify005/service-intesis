@@ -19,7 +19,7 @@ releases:
   - ../secrets/app.yaml
   {{- if contains "development" .Environment.Name }}
   - image:
-      tag: sha256:6c7a621dac124e897af20f4181ccc4d4b2642e277944689d1246262f6522df34
+      tag: sha256:9b8e1632f80759d626baaee7e868e214b5b3052b83cacb407e315958c4e17d28
   {{- end }}
 
 

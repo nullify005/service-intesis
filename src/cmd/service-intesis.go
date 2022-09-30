@@ -56,6 +56,7 @@ func monitor(device int64) {
 			m.SetPoint(float64(state["setpoint"].(int) / 10))
 			m.Temperature(float64(state["temperature"].(int) / 10))
 			m.Power(float64(state["power"].(int)))
+			m.Mode(float64(state["mode"].(int)))
 			time.Sleep(time.Duration(*flagInterval) * time.Second)
 		}
 	}()
@@ -73,7 +74,8 @@ func status(device int64) {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		fmt.Printf("%v: %v\n", k, state[k])
+		mappedV := conn.MapValue(k, state[k].(int))
+		fmt.Printf("%v: %v\n", k, mappedV)
 	}
 	os.Exit(0)
 }
