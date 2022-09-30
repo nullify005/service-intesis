@@ -8,7 +8,7 @@ type Connection struct {
 	Username string
 	Password string
 	Endpoint string
-	Mock     string
+	Mock     bool
 }
 
 type ControlResponse struct {

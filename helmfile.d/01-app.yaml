@@ -1,0 +1,25 @@
+helmDefaults:
+  wait: true
+  atomic: true
+  verify: false # necessary as this is a local chart
+  timeout: 30
+
+environments:
+  local: {}
+  development: {}
+
+releases:
+- name: app
+  namespace: service-intesis-{{ .Environment.Name }}-v1
+  createNamespace: true
+  chart: ../helm/charts/service-intesis
+  values:
+  - ../helm/values/app/common.yaml
+  - ../helm/values/app/{{ .Environment.Name }}.yaml
+  - ../secrets/app.yaml
+  {{- if contains "development" .Environment.Name }}
+  - image:
+      tag: sha256:6c7a621dac124e897af20f4181ccc4d4b2642e277944689d1246262f6522df34
+  {{- end }}
+
+

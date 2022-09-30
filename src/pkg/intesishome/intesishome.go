@@ -14,38 +14,43 @@ import (
 //go:embed "assets/StateMapping.json"
 var mappingBody []byte
 
-// TODO: only map the values if we're asking to (probably via the CLI)
+//go:embed "assets/ControlResponse.json"
+var mockBody []byte
+
 func (c *Connection) Status(device int64) (state map[string]interface{}) {
 	state = make(map[string]interface{})
 	response := callControl(c)
-	var stateMapping map[string]interface{}
-	err := json.Unmarshal(mappingBody, &stateMapping)
-	if err != nil {
-		fmt.Printf("problem unmarshalling the statemapping when inspecting capabilities")
-		os.Exit(1)
-	}
+	mapping := mappings()
 	for _, s := range response.Status.Status {
 		if s.DeviceID != device {
 			continue
 		}
 		uid := fmt.Sprint(s.UID)
-		_, ok := stateMapping[uid]
+		_, ok := mapping[uid]
 		if !ok {
 			// key doesn't exist
 			continue
 		}
-		name := stateMapping[uid].(map[string]interface{})["name"].(string)
-		_, ok = stateMapping[uid].(map[string]interface{})["values"]
-		if !ok {
-			// there's no human mapping for the value
-			state[name] = s.Value
-			continue
-		}
-		key := fmt.Sprint(s.Value)
-		values := stateMapping[uid].(map[string]interface{})["values"].(map[string]interface{})
-		state[name] = values[key]
+		name := mapping[uid].(map[string]interface{})["name"].(string)
+		state[name] = s.Value
 	}
 	return
+}
+
+func (c *Connection) MapValue(name string, value int) interface{} {
+	mapping := mappings()
+	for k := range mapping {
+		if mapping[k].(map[string]interface{})["name"].(string) == name {
+			values, ok := mapping[k].(map[string]interface{})["values"].(map[string]interface{})
+			if !ok {
+				// there's no human mapping for the value
+				return value
+			}
+			return values[fmt.Sprint(value)]
+		}
+	}
+	// couldn't find it give back the value
+	return value
 }
 
 func (c *Connection) Devices() []Device {
@@ -59,6 +64,15 @@ func (c *Connection) Devices() []Device {
 
 func (d *Device) String() (s string) {
 	s = fmt.Sprintf("device id: %v name: %v family: %v model: %v capabilities [%v]", d.ID, d.Name, d.FamilyID, d.ModelID, strings.Join(capabilities(d.Widgets), ","))
+	return
+}
+
+func mappings() (ret map[string]interface{}) {
+	err := json.Unmarshal(mappingBody, &ret)
+	if err != nil {
+		fmt.Printf("problem unmarshalling the statemapping when inspecting capabilities")
+		os.Exit(1)
+	}
 	return
 }
 
@@ -88,7 +102,7 @@ func callControl(self *Connection) ControlResponse {
 		self.Endpoint = ApiEndpoint
 	}
 	controlResponse := &ControlResponse{}
-	if self.Mock != "" {
+	if self.Mock {
 		return mockResponse(self)
 	}
 	form := statusForm(self.Username, self.Password)
@@ -120,12 +134,7 @@ func callControl(self *Connection) ControlResponse {
 
 func mockResponse(self *Connection) ControlResponse {
 	r := &ControlResponse{}
-	body, err := os.ReadFile(self.Mock)
-	if err != nil {
-		fmt.Printf("unable to read in mock response: %v with: %v\n", self.Mock, err)
-		os.Exit(1)
-	}
-	err = json.Unmarshal(body, &r)
+	err := json.Unmarshal(mockBody, &r)
 	if err != nil {
 		fmt.Printf("unable to marshal mock response body into ControlResponse: %v\n", err)
 		os.Exit(1)

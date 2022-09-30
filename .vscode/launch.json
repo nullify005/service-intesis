@@ -9,7 +9,8 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceRoot}"
+            "cwd": "${workspaceRoot}/src",
+            "program": "${workspaceRoot}/src/cmd/service-intesis.go"
         }
     ]
 }

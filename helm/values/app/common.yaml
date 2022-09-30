@@ -1,0 +1,42 @@
+image:
+  repository: nullify005/service-intesis
+serviceAccount:
+  create: false
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  allowPrivilegeEscalation: false
+  seccompProfile:
+    type: RuntimeDefault
+service:
+  enabled: false
+ingress:
+  enabled: false
+resources:
+  limits:
+    memory: 32Mi
+  requests:
+    memory: 32Mi 
+livenessProbe:
+  path: /health
+  port: 2112
+readinessProbe:
+  path: /health
+  port: 2112
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: /metrics
+  prometheus.io/port: "2112"
+command:
+- /service-intesis
+args:
+- -monitor
+- -device
+- "127934703953"
+- -listen
+- ":2112"
