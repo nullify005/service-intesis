@@ -3,10 +3,10 @@ package metrics
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/stretchr/testify/assert"
 )
 
 var requiredMetrics = []string{
@@ -27,13 +27,9 @@ func TestMetrics(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, metricsPath, nil)
 	recorder := httptest.NewRecorder()
 	promhttp.Handler().ServeHTTP(recorder, request)
-	if recorder.Code != http.StatusOK {
-		t.Errorf("received non 200 response code: %v", recorder.Code)
-	}
+	assert.Equal(t, recorder.Code, http.StatusOK)
 	body := recorder.Body.String()
 	for _, s := range requiredMetrics {
-		if !strings.Contains(body, s) {
-			t.Errorf("metrics response didn't contain: %s", s)
-		}
+		assert.Contains(t, body, s)
 	}
 }

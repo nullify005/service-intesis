@@ -8,7 +8,6 @@ import (
 
 var (
 	m     *metrics
-	lock  = &sync.Mutex{}
 	mTemp = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "hvac_temperature_celcius",
 		Help: "HVAC observed temperature in celcius",
@@ -27,11 +26,12 @@ var (
 	})
 )
 
+type metrics struct {
+	mu sync.Mutex
+}
+
 // NOTE: the http handler still needs to be registered elsewhere
-// TODO: write some tests for this
 func New() *metrics {
-	lock.Lock()
-	defer lock.Unlock()
 	if m == nil {
 		m = &metrics{}
 		prometheus.MustRegister(mTemp)
@@ -47,17 +47,25 @@ func New() *metrics {
 }
 
 func (m *metrics) Temperature(t float64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	mTemp.Set(t)
 }
 
 func (m *metrics) SetPoint(t float64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	mSetPoint.Set(t)
 }
 
 func (m *metrics) Power(t float64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	mPower.Set(t)
 }
 
 func (m *metrics) Mode(t float64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	mMode.Set(t)
 }

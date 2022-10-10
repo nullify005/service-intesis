@@ -2,6 +2,8 @@ package secrets
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -12,25 +14,17 @@ const (
 
 func TestGoodYaml(t *testing.T) {
 	s, err := Read(goodFile)
-	if err != nil {
-		t.Errorf("expecting a nil error response but got: %v", err)
-		return
-	}
-	if s.Username != "a" || s.Password != "b" {
-		t.Errorf("expected valid username & password but got: %#v", s)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, s.Username, "a")
+	assert.Equal(t, s.Password, "b")
 }
 
 func TestBadYaml(t *testing.T) {
 	_, err := Read(badFile)
-	if err == nil {
-		t.Errorf("expecting an error response!")
-	}
+	assert.Error(t, err)
 }
 
 func TestBadFile(t *testing.T) {
 	_, err := Read(jsonFile)
-	if err == nil {
-		t.Errorf("expecting an error response!")
-	}
+	assert.Error(t, err)
 }
