@@ -100,7 +100,7 @@ func watch(w *Watcher) {
 			}
 			mapped := make(map[string]interface{})
 			for k, v := range state {
-				mV := intesishome.MapState(k, v.(int))
+				mV := intesishome.DecodeState(k, v.(int))
 				mapped[k] = mV
 			}
 			log.Printf("(%v) power: %v mode: %v temp: %v setpoint: %v",

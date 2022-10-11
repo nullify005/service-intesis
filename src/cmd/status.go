@@ -31,7 +31,7 @@ var statusCmd = &cobra.Command{
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			mappedV := intesishome.MapState(k, state[k].(int))
+			mappedV := intesishome.DecodeState(k, state[k].(int))
 			fmt.Printf("%v: %v\n", k, mappedV)
 		}
 	},

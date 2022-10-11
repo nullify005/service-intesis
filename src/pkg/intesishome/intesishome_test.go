@@ -169,7 +169,7 @@ func TestStatus(t *testing.T) {
 						continue
 					}
 					assert.Equal(t, s[k], v)
-					mVal := MapState(k, v.(int))
+					mVal := DecodeState(k, v.(int))
 					assert.Equal(t, stateVerifyMapped[k], mVal)
 				}
 			},
@@ -198,7 +198,7 @@ func TestStatus(t *testing.T) {
 	}
 }
 
-func TestStateMapping(t *testing.T) {
+func TestDecodeState(t *testing.T) {
 	tests := []struct {
 		name  string
 		key   string
@@ -226,10 +226,36 @@ func TestStateMapping(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mVal := MapState(tt.key, tt.value)
+			mVal := DecodeState(tt.key, tt.value)
 			assert.Equal(t, tt.want, mVal)
 		})
 	}
+}
+
+func TestDecodeUid(t *testing.T) {
+	tests := []struct {
+		name string
+		uid  int
+		want interface{}
+	}{
+		{
+			"valid uid",
+			1,
+			"power",
+		},
+		{
+			"invalid uid",
+			65535,
+			"65535",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := DecodeUid(tt.uid)
+			assert.Equal(t, v, tt.want)
+		})
+	}
+
 }
 
 // TODO: write tests for the command push & command mappings
@@ -263,7 +289,7 @@ func testCallControl(responseCode int, payload string) (r ControlResponse, err e
 		return
 	}
 	ih := New("u", "p", WithHostname(s.URL))
-	r, err = callControl(&ih)
+	r, err = controlRequest(&ih)
 	return
 }
 

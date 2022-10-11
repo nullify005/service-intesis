@@ -28,7 +28,7 @@ var getCmd = &cobra.Command{
 			fmt.Printf("unable to locate status: %s", args[1])
 			os.Exit(1)
 		}
-		mappedV := intesishome.MapState(args[1], state[args[1]].(int))
+		mappedV := intesishome.DecodeState(args[1], state[args[1]].(int))
 		fmt.Printf("(%s) %s: %v\n", args[0], args[1], mappedV)
 	},
 }
