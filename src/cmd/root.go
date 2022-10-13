@@ -25,8 +25,9 @@ import (
 )
 
 var (
-	_username string
-	_password string
+	username string
+	password string
+	verbose  bool
 
 	rootCmd = &cobra.Command{
 		Use:   "service-intesis",
@@ -43,8 +44,9 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&_username, "username", "u", "", "Intesis Cloud Username")
-	rootCmd.PersistentFlags().StringVarP(&_password, "password", "p", "", "Intesis Cloud Password")
+	rootCmd.PersistentFlags().StringVarP(&username, "username", "u", "", "Intesis Cloud Username")
+	rootCmd.PersistentFlags().StringVarP(&password, "password", "p", "", "Intesis Cloud Password")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbosity")
 	rootCmd.MarkPersistentFlagRequired("username")
 	rootCmd.MarkPersistentFlagRequired("password")
 }

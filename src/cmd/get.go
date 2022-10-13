@@ -17,7 +17,7 @@ var getCmd = &cobra.Command{
 	Short: "get the value of parameter key from the AC Unit",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		ih := intesishome.New(_username, _password)
+		ih := intesishome.New(username, password, intesishome.WithVerbose(verbose))
 		device := toInt64(args[0])
 		state, err := ih.Status(int64(device))
 		if err != nil {

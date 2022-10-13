@@ -8,27 +8,27 @@ import (
 )
 
 var (
-	commandMap map[string]interface{}
-	stateMap   map[string]interface{}
+	_commandMap map[string]interface{}
+	_stateMap   map[string]interface{}
 	//go:embed "assets/mappingCommand.json"
-	commandMapJSON []byte
+	_commandMapJSON []byte
 	//go:embed "assets/mappingState.json"
-	stateMapJSON []byte
+	_stateMapJSON []byte
 )
 
 func init() {
-	if err := json.Unmarshal(commandMapJSON, &commandMap); err != nil {
+	if err := json.Unmarshal(_commandMapJSON, &_commandMap); err != nil {
 		fmt.Printf("fatal! unable to load in the command map")
 		panic(err)
 	}
-	if err := json.Unmarshal(stateMapJSON, &stateMap); err != nil {
+	if err := json.Unmarshal(_stateMapJSON, &_stateMap); err != nil {
 		fmt.Printf("fatal! unable to load in the command map")
 		panic(err)
 	}
 }
 
 func MapCommand(key string, value interface{}) (uid, mValue int, err error) {
-	if _, ok := commandMap[key]; !ok {
+	if _, ok := _commandMap[key]; !ok {
 		err = fmt.Errorf("key not present in command map: %s", key)
 		return
 	}
@@ -37,7 +37,7 @@ func MapCommand(key string, value interface{}) (uid, mValue int, err error) {
 		uid = i
 	} else {
 		// map the key to the uid
-		uid = int(commandMap[key].(map[string]interface{})["uid"].(float64))
+		uid = int(_commandMap[key].(map[string]interface{})["uid"].(float64))
 	}
 	i, err := strconv.Atoi(value.(string))
 	if err == nil {
@@ -47,7 +47,7 @@ func MapCommand(key string, value interface{}) (uid, mValue int, err error) {
 	}
 	// otherwise we have to map it, reset the err
 	err = nil
-	values := commandMap[key].(map[string]interface{})["values"].(map[string]interface{})
+	values := _commandMap[key].(map[string]interface{})["values"].(map[string]interface{})
 	if _, ok := values[value.(string)]; !ok {
 		err = fmt.Errorf("no such value: %v exists for command: %v wanted: %v", value, key, values)
 		return
@@ -60,20 +60,20 @@ func MapCommand(key string, value interface{}) (uid, mValue int, err error) {
 // if we are unable to then return the original uid as a string
 func DecodeUid(uid int) string {
 	uidS := fmt.Sprint(uid)
-	if _, ok := stateMap[uidS]; !ok {
+	if _, ok := _stateMap[uidS]; !ok {
 		return uidS
 	}
-	if _, ok := stateMap[uidS].(map[string]interface{})["name"].(string); !ok {
+	if _, ok := _stateMap[uidS].(map[string]interface{})["name"].(string); !ok {
 		return uidS
 	}
-	return stateMap[uidS].(map[string]interface{})["name"].(string)
+	return _stateMap[uidS].(map[string]interface{})["name"].(string)
 }
 
 // returns a string representation of the value, the original value if it cannot be mapped or nil
 func DecodeState(name string, value int) interface{} {
-	for k := range stateMap {
-		if stateMap[k].(map[string]interface{})["name"].(string) == name {
-			values, ok := stateMap[k].(map[string]interface{})["values"].(map[string]interface{})
+	for k := range _stateMap {
+		if _stateMap[k].(map[string]interface{})["name"].(string) == name {
+			values, ok := _stateMap[k].(map[string]interface{})["values"].(map[string]interface{})
 			if !ok {
 				// there's no human mapping for the value
 				return value

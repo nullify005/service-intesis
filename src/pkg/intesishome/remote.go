@@ -8,14 +8,18 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
+	"strconv"
+	"strings"
+	"time"
 )
 
 const (
-	_controlHostname string = "https://user.intesishome.com"
-	controlEndpoint  string = "/api.php/get/control"
-	statusCommand    string = `{"status":{"hash":"x"},"config":{"hash":"x"}}`
-	statusVersion    string = "1.8.5"
+	controlHostname    string        = "https://user.intesishome.com"
+	ControlEndpoint    string        = "/api.php/get/control"
+	_statusCommand     string        = `{"status":{"hash":"x"},"config":{"hash":"x"}}`
+	_statusVersion     string        = "1.8.5"
+	_readLimitBytes    int           = 1024
+	_socketReadTimeout time.Duration = 30 * time.Second
 )
 
 var (
@@ -55,22 +59,24 @@ type ControlResponse struct {
 type CommandResponse struct {
 	Command string `json:"command"`
 	Data    struct {
-		DeviceID int64  `json:"devceId"`
-		SeqNo    int    `json:"seqNo"`
-		Rssi     int    `json:"rssi"`
-		Status   string `json:"status"`
+		DeviceID int64  `json:"devceId,omitempty"`
+		SeqNo    int    `json:"seqNo,omitempty"`
+		Rssi     int    `json:"rssi,omitempty"`
+		Status   string `json:"status,omitempty"`
 	} `json:"data"`
 }
 
 type CommandRequest struct {
-	Command string `json:"command"`
-	Data    struct {
-		DeviceID int64 `json:"deviceId,omitempty"`
-		Uid      int   `json:"uid,omitempty"`
-		Value    int   `json:"value,omitempty"`
-		SeqNo    int   `json:"seqNo,omitempty"`
-		Token    int   `json:"token,omitempty"`
-	} `json:"data"`
+	Command string             `json:"command"`
+	Data    CommandRequestData `json:"data"`
+}
+
+type CommandRequestData struct {
+	DeviceID int64 `json:"deviceId"`
+	Uid      int   `json:"uid"`
+	Value    int   `json:"value"`
+	SeqNo    int   `json:"seqNo"`
+	Token    int   `json:"token"`
 }
 
 func controlRequest(ih *IntesisHome) (r ControlResponse, err error) {
@@ -79,7 +85,7 @@ func controlRequest(ih *IntesisHome) (r ControlResponse, err error) {
 	// 	return mockResponse(self)
 	// }
 	form := statusForm(ih.username, ih.password)
-	uri := ih.hostname + controlEndpoint
+	uri := ih.hostname + ControlEndpoint
 	resp, err := http.PostForm(uri, form)
 	if err != nil {
 		return
@@ -108,35 +114,49 @@ func controlRequest(ih *IntesisHome) (r ControlResponse, err error) {
 	ih.token = r.Config.Token
 	ih.serverIP = r.Config.ServerIP
 	ih.serverPort = r.Config.ServerPort
+	// override the TCPServer settings
+	if ih.tcpServer != "" {
+		addr := strings.Split(ih.tcpServer, ":")
+		ih.serverIP = addr[0]
+		ih.serverPort, err = strconv.Atoi(addr[1])
+		if err != nil {
+			return
+		}
+	}
+	if ih.verbose {
+		fmt.Printf("DEBUG|controlRequest| token: %v server: %s %v\n", ih.token, ih.serverIP, ih.serverPort)
+	}
 	return r, err
 }
 
-func socketWrite(c *IntesisHome, b []byte) (response []byte) {
-	var err error
+func socketWrite(ih *IntesisHome, b []byte) (response []byte, err error) {
 	if socket == nil {
-		socket, err = net.Dial("tcp", fmt.Sprintf("%s:%v", c.serverIP, c.serverPort))
+		socket, err = net.Dial("tcp", fmt.Sprintf("%s:%v", ih.serverIP, ih.serverPort))
 		if err != nil {
-			fmt.Printf("unable to establish IntesisHome to: %v:%v with: %v\n", c.serverIP, c.serverPort, err.Error())
-			os.Exit(1)
+			return
 		}
+		socket.SetDeadline(time.Now().Add(_socketReadTimeout))
 	}
-	res, err := socket.Write(b)
+	if ih.verbose {
+		fmt.Printf("DEBUG|socketWrite| sending request: %s\n", string(b))
+	}
+	wBytes, err := socket.Write(b)
 	if err != nil {
-		fmt.Printf("unable to write: %s to socket with: %v\n", b, err.Error())
-		os.Exit(1)
+		return
 	}
-	if res != len(b) {
-		fmt.Printf("not all bytes of: %s were written: %v vs. %v\n", b, res, len(b))
-		os.Exit(1)
+	if wBytes != len(b) {
+		err = fmt.Errorf("read byte mismatch, expected: %v actual: %v", wBytes, len(b))
+		return
 	}
-	response = make([]byte, 1024)
+	response = make([]byte, _readLimitBytes)
 	_, err = socket.Read(response)
 	if err != nil {
-		fmt.Printf("failure to read from socket with: %v\n", err.Error())
-		os.Exit(1)
+		return
 	}
-	fmt.Printf("received response: %s\n", response)
-	response = bytes.Trim(response, "\x00") // trim the nulls from the end
+	if ih.verbose {
+		fmt.Printf("DEBUG|socketWrite| received response: %s\n", response)
+	}
+	response = bytes.Trim(response, "\x00") // trim any nulls from the end
 	return
 }
 
@@ -144,7 +164,7 @@ func statusForm(user, pass string) (ret url.Values) {
 	ret = url.Values{}
 	ret.Set("username", user)
 	ret.Add("password", pass)
-	ret.Add("version", statusVersion)
-	ret.Add("cmd", statusCommand)
+	ret.Add("version", _statusVersion)
+	ret.Add("cmd", _statusCommand)
 	return
 }

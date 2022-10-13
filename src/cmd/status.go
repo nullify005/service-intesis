@@ -18,7 +18,7 @@ var statusCmd = &cobra.Command{
 	Short: "fetch the current status of an AC Unit",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		ih := intesishome.New(_username, _password)
+		ih := intesishome.New(username, password, intesishome.WithVerbose(verbose))
 		device := toInt64(args[0])
 		state, err := ih.Status(int64(device))
 		if err != nil {
