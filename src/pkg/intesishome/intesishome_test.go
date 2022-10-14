@@ -126,7 +126,7 @@ func TestStatus(t *testing.T) {
 				return
 			}
 			ih := New("u", "p", WithHostname(s.URL))
-			d, _ := strconv.Atoi(testDeviceId)
+			d, _ := strconv.ParseInt(testDeviceId, 10, 64)
 			state, err := ih.Status(int64(d))
 			tt.want(t, state, err)
 		})

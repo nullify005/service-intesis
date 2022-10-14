@@ -13,9 +13,7 @@ import (
 
 // setCmd represents the set command
 var (
-	_tcpserver  *string
-	_httpserver *string
-	setCmd      = &cobra.Command{
+	setCmd = &cobra.Command{
 		Use:   "set key value",
 		Short: "set parameter key to value on an AC Unit",
 		Args:  cobra.ExactArgs(3),
@@ -23,9 +21,9 @@ var (
 			device := toInt64(args[0])
 			key := args[1]
 			val := args[2]
-			ih := intesishome.New(username, password,
-				intesishome.WithVerbose(verbose), intesishome.WithTCPServer(*_tcpserver),
-				intesishome.WithHostname(*_httpserver),
+			ih := intesishome.New(
+				flagUsername, flagPassword,
+				intesishome.WithVerbose(flagVerbose), intesishome.WithHostname(flagHTTPServer),
 			)
 			// what happens when the uid isn't within the map?
 			uid, value, err := intesishome.MapCommand(key, val)
@@ -43,6 +41,4 @@ var (
 
 func init() {
 	rootCmd.AddCommand(setCmd)
-	_tcpserver = setCmd.Flags().StringP("tcpserver", "t", "", "use the following TCPServer host:port for HVAC control commands (DEBUG)")
-	_httpserver = setCmd.Flags().StringP("httpserver", "l", "", "use the following HTTPServer host:port for HVAC status (DEBUG)")
 }

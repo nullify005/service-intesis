@@ -13,7 +13,7 @@ const (
 )
 
 //go:embed assets/validControlResponse.json
-var responsePayload []byte
+var _responsePayload []byte
 
 type HTTPOption func(h *HTTPServer)
 
@@ -21,9 +21,13 @@ type HTTPServer struct {
 	Listen string
 }
 
+// set the host:port to listen on
 func WithHTTPListen(l string) HTTPOption {
 	return func(h *HTTPServer) {
-		h.Listen = l
+		h.Listen = DefaultHTTPListen
+		if l != "" {
+			h.Listen = l
+		}
 	}
 }
 
@@ -46,7 +50,7 @@ func (h *HTTPServer) Run() {
 func handleEndpoint(w http.ResponseWriter, r *http.Request) {
 	log.Printf("received connection from: %s", r.RemoteAddr)
 	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(responsePayload); err != nil {
+	if _, err := w.Write(_responsePayload); err != nil {
 		log.Printf("unable to write: %s", err.Error())
 	}
 }

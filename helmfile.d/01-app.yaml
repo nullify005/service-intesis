@@ -17,9 +17,5 @@ releases:
   - ../helm/values/app/common.yaml
   - ../helm/values/app/{{ .Environment.Name }}.yaml
   - ../secrets/app.yaml
-  {{- if contains "development" .Environment.Name }}
-  - image:
-      tag: sha256:9b8e1632f80759d626baaee7e868e214b5b3052b83cacb407e315958c4e17d28
-  {{- end }}
 
 

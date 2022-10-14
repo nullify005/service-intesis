@@ -35,8 +35,11 @@ podAnnotations:
 command:
 - /service-intesis
 args:
-- -monitor
-- -device
+- watch
 - "127934703953"
-- -listen
-- ":2112"
+- --listen
+- :2112
+- --interval
+- 120s
+- --secrets
+- "/.secrets/creds.yaml"

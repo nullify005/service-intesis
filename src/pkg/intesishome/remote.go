@@ -22,10 +22,6 @@ const (
 	_socketReadTimeout time.Duration = 30 * time.Second
 )
 
-var (
-	socket net.Conn // holder for the TCP session
-)
-
 type ControlResponse struct {
 	Config struct {
 		Token          int     `json:"token"`
@@ -80,10 +76,6 @@ type CommandRequestData struct {
 }
 
 func controlRequest(ih *IntesisHome) (r ControlResponse, err error) {
-	// controlResponse := &ControlResponse{}
-	// if self.mock {
-	// 	return mockResponse(self)
-	// }
 	form := statusForm(ih.username, ih.password)
 	uri := ih.hostname + ControlEndpoint
 	resp, err := http.PostForm(uri, form)
@@ -130,27 +122,29 @@ func controlRequest(ih *IntesisHome) (r ControlResponse, err error) {
 }
 
 func socketWrite(ih *IntesisHome, b []byte) (response []byte, err error) {
-	if socket == nil {
-		socket, err = net.Dial("tcp", fmt.Sprintf("%s:%v", ih.serverIP, ih.serverPort))
+	if ih.cmdSocket == nil {
+		ih.cmdSocket, err = net.Dial("tcp", fmt.Sprintf("%s:%v", ih.serverIP, ih.serverPort))
 		if err != nil {
 			return
 		}
-		socket.SetDeadline(time.Now().Add(_socketReadTimeout))
+		ih.cmdSocket.SetDeadline(time.Now().Add(_socketReadTimeout))
 	}
 	if ih.verbose {
 		fmt.Printf("DEBUG|socketWrite| sending request: %s\n", string(b))
 	}
-	wBytes, err := socket.Write(b)
+	wBytes, err := ih.cmdSocket.Write(b)
 	if err != nil {
+		err = fmt.Errorf("socket write error: %v", err)
 		return
 	}
 	if wBytes != len(b) {
-		err = fmt.Errorf("read byte mismatch, expected: %v actual: %v", wBytes, len(b))
+		err = fmt.Errorf("write byte mismatch, expected: %v actual: %v", wBytes, len(b))
 		return
 	}
 	response = make([]byte, _readLimitBytes)
-	_, err = socket.Read(response)
+	_, err = ih.cmdSocket.Read(response)
 	if err != nil {
+		err = fmt.Errorf("socket read error: %v", err)
 		return
 	}
 	if ih.verbose {

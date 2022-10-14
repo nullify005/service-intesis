@@ -16,7 +16,10 @@ var devicesCmd = &cobra.Command{
 	Use:   "devices",
 	Short: "list all of the confgured devices",
 	Run: func(cmd *cobra.Command, args []string) {
-		ih := intesishome.New(username, password)
+		ih := intesishome.New(
+			flagUsername, flagPassword,
+			intesishome.WithVerbose(flagVerbose), intesishome.WithHostname(flagHTTPServer),
+		)
 		devices, err := ih.Devices()
 		if err != nil {
 			fmt.Printf("error getting devices: %v\n", err.Error())

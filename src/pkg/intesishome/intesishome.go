@@ -3,15 +3,17 @@ package intesishome
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strings"
 )
 
 const (
-	_commandReqSet string = "set"
-	_commandRspSet string = "set_ack"
-	_commandReqCon string = "connect_req"
-	_commandRspCon string = "connect_rsp"
-	_commandAuthOk string = "ok"
+	commandReqSet  string = "set"
+	commandRspSet  string = "set_ack"
+	commandReqCon  string = "connect_req"
+	commandRspCon  string = "connect_rsp"
+	commandAuthOk  string = "ok"
+	commandAuthBad string = "err_token"
 )
 
 type IntesisHome struct {
@@ -23,6 +25,7 @@ type IntesisHome struct {
 	tcpServer  string
 	token      int
 	verbose    bool
+	cmdSocket  net.Conn // holder for the tcpSocket
 }
 
 type Option func(c *IntesisHome)
@@ -43,6 +46,11 @@ func New(user, pass string, opts ...Option) IntesisHome {
 // set an alternate hostname for API calls, useful for testing
 func WithHostname(host string) Option {
 	return func(ih *IntesisHome) {
+		// set an appropriate default
+		ih.hostname = controlHostname
+		if host == "" {
+			return
+		}
 		if !strings.Contains(host, "http://") {
 			ih.hostname = "http://" + host
 			return
@@ -91,7 +99,7 @@ func (ih *IntesisHome) Set(device int64, uid, value int) (err error) {
 
 	// authenticate
 	cmd := &CommandRequest{
-		Command: _commandReqCon,
+		Command: commandReqCon,
 		Data: CommandRequestData{
 			Token: ih.token,
 		},
@@ -108,15 +116,18 @@ func (ih *IntesisHome) Set(device int64, uid, value int) (err error) {
 	if err = json.Unmarshal(resp, &cmdResp); err != nil {
 		return
 	}
-	if cmdResp.Command != _commandRspCon && cmdResp.Data.Status != _commandAuthOk {
-		err = fmt.Errorf("unexpected reply, expected: %s/%s got: %s/%s",
-			_commandRspCon, _commandAuthOk, cmdResp.Command, cmdResp.Data.Status)
+	if cmdResp.Command != commandRspCon {
+		err = fmt.Errorf("unexpected reply, expected: %s got: %s", commandRspCon, cmdResp.Command)
+		return
+	}
+	if cmdResp.Data.Status != commandAuthOk {
+		err = fmt.Errorf("unexpected reply, expected: %s got: %s", commandAuthOk, cmdResp.Data.Status)
 		return
 	}
 
 	// now write the command
 	cmd = &CommandRequest{
-		Command: _commandReqSet,
+		Command: commandReqSet,
 		Data: CommandRequestData{
 			DeviceID: device,
 			Uid:      uid,
@@ -135,8 +146,8 @@ func (ih *IntesisHome) Set(device int64, uid, value int) (err error) {
 	if err = json.Unmarshal(resp, &cmdResp); err != nil {
 		return
 	}
-	if cmdResp.Command != _commandRspSet {
-		err = fmt.Errorf("set failed, expected: %s got: %s", _commandRspSet, cmdResp.Command)
+	if cmdResp.Command != commandRspSet {
+		err = fmt.Errorf("set failed, expected: %s got: %s", commandRspSet, cmdResp.Command)
 		return
 	}
 	return

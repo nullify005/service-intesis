@@ -12,19 +12,17 @@ import (
 
 // devicesCmd represents the devices command
 var (
-	_serverTCPListen  *string
-	_serverHTTPListen *string
-	_serverTimeout    *time.Duration
-	serverCmd         = &cobra.Command{
+	_serverTimeout *time.Duration
+	serverCmd      = &cobra.Command{
 		Use:   "server",
 		Short: "runs a test tcp server",
 		Run: func(cmd *cobra.Command, args []string) {
 			t := mock.NewTCPServer(
-				mock.WithTCPListen(*_serverTCPListen),
+				mock.WithTCPListen(flagTCPServer),
 				mock.WithTCPReadTimeout(*_serverTimeout),
 			)
 			go t.Run()
-			h := mock.NewHTTPServer(mock.WithHTTPListen(*_serverHTTPListen))
+			h := mock.NewHTTPServer(mock.WithHTTPListen(flagHTTPServer))
 			h.Run()
 		},
 		PreRun: func(cmd *cobra.Command, args []string) {
@@ -38,7 +36,5 @@ var (
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
-	_serverTCPListen = serverCmd.Flags().String("tcpserver", mock.DefaultTCPListen, "the TCPServer host:port to listen on")
-	_serverHTTPListen = serverCmd.Flags().String("httpserver", mock.DefaultHTTPListen, "the HTTPServer host:port to listen on")
-	_serverTimeout = serverCmd.Flags().DurationP("timeout", "t", mock.DefaultReadTimeout, "read timeout duration")
+	_serverTimeout = serverCmd.Flags().Duration("timeout", mock.DefaultReadTimeout, "read timeout duration")
 }

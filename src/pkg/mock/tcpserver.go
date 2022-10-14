@@ -54,7 +54,10 @@ func NewTCPServer(opts ...Option) TCPServer {
 // sets an alternate listen:port
 func WithTCPListen(l string) Option {
 	return func(t *TCPServer) {
-		t.Listen = l
+		t.Listen = DefaultTCPListen
+		if l != "" {
+			t.Listen = l
+		}
 	}
 }
 
@@ -143,69 +146,6 @@ func handleConn(c *Conn) {
 	}
 	log.Printf("(%s) closed connection from: %s", c.t, c.c.RemoteAddr().String())
 }
-
-/*
-	writeCommand  string = `{"command":"set","data":{"deviceId":%v,"uid":%v,"value":%v,"seqNo":0}}`
-	writeAuth     string = `{"command":"connect_req","data":{"token":%v}}`
-		cmd.Command = "connect_req"
-	commandConnOk string = "connect_rsp"
-		cmd.Command = "set"
-	commandSetAck string = "set_ack"
-		cmdResp.Data.Status != commandAuthOk
-	commandAuthOk string = "ok"
-
-	{"command":"connect_req","data":{"deviceId":12345,"token":12345}}
-	{"command":"connect_req","data":{"deviceId":12345}}
-
-	{"command":"set","data":{"deviceId":12345,"uid":1,"value":1,"seqNo":0}}
-
-    async def _parse_response(self, decoded_data):
-        _LOGGER.debug("%s API Received: %s", self._device_type, decoded_data)
-        resp = json.loads(decoded_data)
-        # Parse response
-        if resp["command"] == "connect_rsp":
-            # New connection success
-            if resp["data"]["status"] == "ok":
-                _LOGGER.info("%s successfully authenticated", self._device_type)
-                self._connected = True
-                self._connecting = False
-                self._connection_retries = 0
-                await self._send_update_callback()
-        elif resp["command"] == "status":
-            # Value has changed
-            self._update_device_state(
-                resp["data"]["deviceId"],
-                resp["data"]["uid"],
-                resp["data"]["value"],
-            )
-            if resp["data"]["uid"] != 60002:
-                await self._send_update_callback(
-                    device_id=str(resp["data"]["deviceId"])
-                )
-        elif resp["command"] == "rssi":
-            # Wireless strength has changed
-            self._update_rssi(resp["data"]["deviceId"], resp["data"]["value"])
-        return
-
-	received response: {"command":"connect_rsp","data":{"status":"ok"}}
-	received response: {"command":"set_ack","data":{"deviceId":127934703953,"seqNo":85,"rssi":198}}
-
-DEBUG|socketWrite| sending request: {"command":"set","data":{"deviceId":127934703953,"uid":-1,"value":0,"seqNo":0,"token":0}}
-DEBUG|socketWrite| received response: {"command":"set_ack","data":{"deviceId":127934703953,"seqNo":0,"rssi":198}}
-
-DEBUG|controlRequest| token: 575497412 server: 212.36.84.207 5210
-DEBUG|socketWrite| sending request: {"command":"connect_req","data":{"deviceId":0,"uid":0,"value":0,"seqNo":0,"token":575497412}}
-DEBUG|socketWrite| received response: {"command":"connect_rsp","data":{"status":"ok"}}
-DEBUG|socketWrite| sending request: {"command":"set","data":{"deviceId":127934703953,"uid":1,"value":0,"seqNo":0,"token":0}}
-failure to read from socket with: EOF
-exit status 1
-
-we don't seem to error at all on bad input, we just ack & then do nothing
-
-	ERRORS:
-		bad token
-			{"command":"connect_rsp","data":{"status":"err_token"}}
-*/
 
 // TODO: add in more rigourous request checking
 // TODO: write tests

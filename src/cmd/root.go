@@ -25,9 +25,11 @@ import (
 )
 
 var (
-	username string
-	password string
-	verbose  bool
+	flagUsername   string // username for intesis cloud
+	flagPassword   string // password for intesis cloud
+	flagVerbose    bool   // debug logging
+	flagTCPServer  string // debug local emulated TCPServer
+	flagHTTPServer string // debug local emulated HTTPServer
 
 	rootCmd = &cobra.Command{
 		Use:   "service-intesis",
@@ -44,18 +46,20 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&username, "username", "u", "", "Intesis Cloud Username")
-	rootCmd.PersistentFlags().StringVarP(&password, "password", "p", "", "Intesis Cloud Password")
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbosity")
+	rootCmd.PersistentFlags().StringVarP(&flagUsername, "username", "u", "", "Intesis Cloud Username")
+	rootCmd.PersistentFlags().StringVarP(&flagPassword, "password", "p", "", "Intesis Cloud Password")
+	rootCmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "Verbosity")
+	rootCmd.PersistentFlags().StringVarP(&flagTCPServer, "tcpserver", "t", "", "use the following TCPServer host:port for HVAC control commands (DEBUG)")
+	rootCmd.PersistentFlags().StringVar(&flagHTTPServer, "httpserver", "", "use the following HTTPServer host:port for HVAC status (DEBUG)")
 	rootCmd.MarkPersistentFlagRequired("username")
 	rootCmd.MarkPersistentFlagRequired("password")
 }
 
 func toInt64(s string) int64 {
-	r, err := strconv.Atoi(s)
+	i, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
-		fmt.Printf("unable to coerce %s to int: %v", s, err.Error())
+		fmt.Printf("unable to coerce %s to int64: %v", s, err.Error())
 		os.Exit(1)
 	}
-	return int64(r)
+	return i
 }

@@ -12,8 +12,17 @@ clean() {
     mkdir -p ${1}
 }
 
+PLATFORMS=(
+    linux/arm64
+    linux/arm/7
+)
+
 IMG="nullify005/service-intesis:development"
-BUILDX="docker buildx build --platform linux/arm64,linux/arm/v7 -t ${IMG}"
+BUILDX="docker buildx build --platform "
+for p in ${PLATFORMS[@]}; do
+    BUILDX="${BUILDX}${p},"
+done
+BUILDX="${BUILDX:0:$((${#BUILDX}-1))} -t ${IMG}"
 ROOT_DIR=$(dirname `get_abs_filename $0`)
 TRIVY_OPTS="--ignorefile ${ROOT_DIR}/.trivyignore --severity CRITICAL,HIGH,MEDIUM --exit-code 1"
 BUILD_DIR=${ROOT_DIR}/tmp
