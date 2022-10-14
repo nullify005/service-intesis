@@ -24,15 +24,15 @@ for license information have a look at `LICENSE`
 
 list your devices
 
-`go run cmd/service-intesis.go -username x -password y`
+`go run . devices -username x -password y`
 
 once you get the device list query it's status
 
-`go run cmd/service-intesis.go -username x -password y -device z`
+`go run . status device -username x -password y`
 
 you can then command the device to change state
 
-`go run cmd/service-intesis.go -username x -password y -device z -set thing -value value`
+`go run . set device key value -username x -password y`
 
 where:
 
@@ -41,9 +41,9 @@ where:
 
 finally you can continuously monitor the state & export the metrics out for prometheus scraping
 
-`go run cmd/service-intesis.go -monitor -device x`
+`go run watch device`
 
-in `-monitor` we expect secrets to be located at `/.secrets/creds.yaml` containing the username & password
+in `watch` we expect secrets to be located at `/.secrets/creds.yaml` containing the username & password
 
 # building
 
