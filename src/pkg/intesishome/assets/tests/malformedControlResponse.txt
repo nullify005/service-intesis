@@ -1,0 +1,10 @@
+---
+{
+    this: 1,
+    is_not:
+    - valid
+    - json
+}
+<html>
+    <body>I'm not JSON at all</body>
+</html>

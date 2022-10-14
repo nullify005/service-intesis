@@ -1,12 +1,12 @@
 {
   "config": {
-    "token": 176207407,
-    "pushToken": "channel-dc90024ca226e2ddad1cad758201d345",
+    "token": 12345,
+    "pushToken": "channel-xxxx",
     "lastAppVersion": "2.8",
     "forceUpdate": 0,
     "setDelay": 0.7,
-    "serverIP": "212.36.84.207",
-    "serverPort": 5210,
+    "serverIP": "127.0.0.1",
+    "serverPort": 5000,
     "hash": "1ea07777a7c19adb6f8e41ac340a8f723797d9cc",
     "inst": [
       {
