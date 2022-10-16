@@ -36,12 +36,11 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         allow-initial-development-versions: true
         force-bump-patch-version: true
-        dry: true
     - name: package
       uses: docker/build-push-action@v3.2.0
       with:
         context: .
         push: true
-        tags: ${{ steps.semver.outputs.version }}
+        tags: ghcr.io/${{ github.repository }}:${{ steps.semver.outputs.version }},ghcr.io/${{ github.repository }}:latest
         labels: ${{ steps.meta.outputs.labels }}
         platforms: linux/arm64,linux/arm/7
