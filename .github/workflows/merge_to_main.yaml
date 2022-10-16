@@ -34,6 +34,9 @@ jobs:
       id: semver
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        allow-initial-development-versions: true
+        force-bump-patch-version: true
+        dry: true
     - name: package
       uses: docker/build-push-action@v3.2.0
       with:
