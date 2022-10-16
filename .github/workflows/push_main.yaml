@@ -44,6 +44,7 @@ jobs:
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
           type=sha
+          type=raw,value=${{ steps.semver.outputs.version }}
     - name: package
       uses: docker/bake-action@v2
       with:

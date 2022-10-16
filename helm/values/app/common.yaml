@@ -1,5 +1,5 @@
 image:
-  repository: nullify005/service-intesis
+  repository: ghcr.io/nullify005/service-intesis:main
 serviceAccount:
   create: false
 securityContext:
