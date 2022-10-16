@@ -10,7 +10,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
 FROM builder AS test
 RUN go test ./...
 
-FROM scratch
+FROM scratch AS final
 COPY --from=builder /service-intesis /service-intesis
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 CMD ["/service-intesis"]
