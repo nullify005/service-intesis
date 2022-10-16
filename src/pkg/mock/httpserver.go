@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/nullify005/service-intesis/pkg/intesishome"
 )
 
@@ -42,6 +43,7 @@ func NewHTTPServer(opts ...HTTPOption) HTTPServer {
 }
 
 func (h *HTTPServer) Run() {
+	router := gin.Default()
 	log.Printf("HTTPServer listening on: %s", h.Listen)
 	http.HandleFunc(intesishome.ControlEndpoint, handleEndpoint)
 	log.Fatal(http.ListenAndServe(h.Listen, nil))

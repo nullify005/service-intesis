@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	controlHostname    string        = "https://user.intesishome.com"
+	DefaultHostname    string        = "https://user.intesishome.com"
 	ControlEndpoint    string        = "/api.php/get/control"
 	_statusCommand     string        = `{"status":{"hash":"x"},"config":{"hash":"x"}}`
 	_statusVersion     string        = "1.8.5"

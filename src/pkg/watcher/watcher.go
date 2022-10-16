@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/nullify005/service-intesis/pkg/intesishome"
 	"github.com/nullify005/service-intesis/pkg/metrics"
 	"github.com/nullify005/service-intesis/pkg/secrets"
@@ -97,6 +99,7 @@ func New(user, pass string, device int64, opts ...Option) Watcher {
 		metricsPath: DefaultMetricsPath,
 		verbose:     false,
 		secrets:     DefaultSecretsPath,
+		hostname:    intesishome.DefaultHostname,
 	}
 	for _, opt := range opts {
 		opt(&w)
@@ -113,11 +116,6 @@ func New(user, pass string, device int64, opts ...Option) Watcher {
 	return w
 }
 
-func healthHandler(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "ok")
-}
-
 func (w *Watcher) Watch() {
 	log.SetPrefix("service-intesis: ")
 	log.SetFlags(log.LstdFlags)
@@ -126,14 +124,34 @@ func (w *Watcher) Watch() {
 	log.Printf("interval: %v", w.interval)
 	log.Printf("listen: %s", w.listen)
 	watch(w)
-	http.HandleFunc(w.healthPath, healthHandler)
-	http.Handle(w.metricsPath, promhttp.Handler())
-	log.Fatal(http.ListenAndServe(w.listen, nil))
+	router := gin.Default()
+	router.GET(w.metricsPath, promHandler())
+	router.GET(w.healthPath, healthHandler)
+	router.GET("/hvac/:device", hvacHandlerRead)
+	log.Fatal(router.Run(w.listen))
 }
 
 func watch(w *Watcher) {
 	m := metrics.New()
-	ih := intesishome.New(w.username, w.password, intesishome.WithVerbose(w.verbose))
+	ih := intesishome.New(
+		w.username, w.password,
+		intesishome.WithVerbose(w.verbose),
+		intesishome.WithHostname(w.hostname),
+	)
+	devices, err := ih.Devices()
+	if err != nil {
+		panic(err)
+	}
+	hasDevice := false
+	for _, d := range devices {
+		if fmt.Sprint(w.device) == d.ID {
+			hasDevice = true
+		}
+	}
+	if !hasDevice {
+		err = fmt.Errorf("unable to locate device: %v", w.device)
+		panic(err)
+	}
 	go func() {
 		for {
 			time.Sleep(w.interval)
@@ -157,4 +175,32 @@ func watch(w *Watcher) {
 			m.Mode(float64(state["mode"].(int)))
 		}
 	}()
+}
+
+func healthHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, "ok")
+}
+
+func promHandler() gin.HandlerFunc {
+	p := promhttp.Handler()
+	return func(c *gin.Context) {
+		p.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
+func hvacHandlerRead(c *gin.Context) {
+	device, err := toInt64(c.Param("device"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid device id")
+		return
+	}
+	c.String(http.StatusOK, "%v", device)
+}
+
+func toInt64(s string) (int64, error) {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return i, nil
 }

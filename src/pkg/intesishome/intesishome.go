@@ -34,7 +34,7 @@ func New(user, pass string, opts ...Option) IntesisHome {
 	c := IntesisHome{
 		username: user,
 		password: pass,
-		hostname: controlHostname,
+		hostname: DefaultHostname,
 		verbose:  false,
 	}
 	for _, opt := range opts {
@@ -47,7 +47,7 @@ func New(user, pass string, opts ...Option) IntesisHome {
 func WithHostname(host string) Option {
 	return func(ih *IntesisHome) {
 		// set an appropriate default
-		ih.hostname = controlHostname
+		ih.hostname = DefaultHostname
 		if host == "" {
 			return
 		}
