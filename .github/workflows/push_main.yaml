@@ -1,4 +1,4 @@
-name: Merge to Main
+name: Push to Main
 on:
   workflow_dispatch: {}
   push:
@@ -7,7 +7,7 @@ on:
     tags:
     - 'v*'
 jobs:
-  merge_to_main:
+  release:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -25,6 +25,13 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+    - name: semantic version
+      uses: go-semantic-release/action@v1
+      id: semver
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        allow-initial-development-versions: true
+        force-bump-patch-version: true
     - name: extract metadata (tags, labels) for docker
       id: meta
       uses: docker/metadata-action@v4
@@ -44,4 +51,4 @@ jobs:
           ./docker-bake.hcl
           ${{ steps.meta.outputs.bake-file }}
         push: true
-        targets: build
+        targets: release
