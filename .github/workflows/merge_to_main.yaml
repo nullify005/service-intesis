@@ -30,7 +30,7 @@ jobs:
         images: |
           ghcr.io/${{ github.repository }}
     - id: release
-      uses: rymndhng/release-on-push-action@v0.23.1
+      uses: rymndhng/release-on-push-action@v0.25.0
       with:
         bump_version_scheme: minor
         tag_prefix: v
