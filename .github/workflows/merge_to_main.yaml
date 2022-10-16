@@ -23,22 +23,22 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - name: Extract metadata (tags, labels) for Docker
+    - name: extract metadata (tags, labels) for docker
       id: meta
       uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
       with:
         images: |
           ghcr.io/${{ github.repository }}
-    - id: release
-      uses: rymndhng/release-on-push-action@v0.23.1
+    - name: semantic version
+      uses: go-semantic-release/action@v1
+      id: semver
       with:
-        bump_version_scheme: minor
-        tag_prefix: v
+        github-token: ${{ secrets.GITHUB_TOKEN }}
     - name: package
       uses: docker/build-push-action@v3.2.0
       with:
         context: .
         push: true
-        tags: ${{ steps.release.outputs.version }}
+        tags: ${{ steps.semver.outputs.version }}
         labels: ${{ steps.meta.outputs.labels }}
         platforms: linux/arm64,linux/arm/7
