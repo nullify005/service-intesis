@@ -1,2 +1,2 @@
 image:
-  tag: development@sha256:2fb8ed4808553f77469ec80b6be9d5f65c47dd172c8ccfdc08ce5ee38abafebd
+  tag: ghcr.io/nullify005/service-intesis:sha-1f80d9a@sha256:7c2c32c677ad06b6df83894ad597356f9cf60fcf0d6e390da323af581957f4e7
