@@ -1,0 +1,63 @@
+name: Check Pull Request
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches:
+    - 'main'
+jobs:
+  check_pull_request:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+    - name: setup buildx
+      uses: docker/setup-buildx-action@v2
+    - name: scan repo
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: fs
+        ignore-unfixed: true
+        format: sarif
+        output: repo-results.sarif
+        severity: HIGH,CRITICAL
+    - name: upload repo scan to security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: repo-results.sarif
+        category: repo-scan
+    - name: extract metadata (tags, labels) for docker
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          ghcr.io/${{ github.repository }}
+        tags: |
+          type=sha
+    - name: test
+      uses: docker/bake-action@v2
+      with:
+        files: |
+          ./docker-bake.hcl
+          ${{ steps.meta.outputs.bake-file }}
+        targets: test
+    - name: build
+      uses: docker/bake-action@v2
+      with:
+        files: |
+          ./docker-bake.hcl
+          ${{ steps.meta.outputs.bake-file }}
+        targets: build
+        load: true
+    - name: scan image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ steps.meta.outputs.tags }}
+        format: sarif
+        ignore-unfixed: true
+        severity: HIGH,CRITICAL
+        output: img-results.sarif
+    - name: upload img scan to security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: img-results.sarif
+        category: image-scan

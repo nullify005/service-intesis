@@ -45,7 +45,3 @@ helmfile -e development -f helmfile.d/01-app.yaml template > ${BUILD_DIR}/deploy
     trivy config ${TRIVY_OPTS} .
 )
 rm -rf ${BUILD_DIR}
-
-# assuming we're successful, now push to the repo
-docker login
-${BUILDX} -o type=registry .
