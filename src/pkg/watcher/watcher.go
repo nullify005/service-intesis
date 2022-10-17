@@ -134,6 +134,13 @@ func (w *Watcher) Watch() {
 func watch(w *Watcher) {
 	m := metrics.New()
 	ih := intesishome.New(w.username, w.password, intesishome.WithVerbose(w.verbose))
+	if ok, err := ih.HasDevice(w.device); !ok {
+		p := "device not found"
+		if err != nil {
+			p = p + "\nerror: " + err.Error()
+		}
+		panic(p)
+	}
 	go func() {
 		for {
 			time.Sleep(w.interval)
