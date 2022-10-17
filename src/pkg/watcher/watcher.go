@@ -133,16 +133,12 @@ func (w *Watcher) Watch() {
 
 func watch(w *Watcher) {
 	m := metrics.New()
-	ih := intesishome.New(
-		w.username, w.password,
-		intesishome.WithVerbose(w.verbose),
-		intesishome.WithHostname(w.hostname),
-	)
+	ih := intesishome.New(w.username, w.password, intesishome.WithVerbose(w.verbose))
 	if ok, err := ih.HasDevice(w.device); !ok {
+		p := "device not found"
 		if err != nil {
-			fmt.Println(err.Error())
+			p = p + "\nerror: " + err.Error()
 		}
-		p := fmt.Sprintf("%v was not a valid device", w.device)
 		panic(p)
 	}
 	go func() {

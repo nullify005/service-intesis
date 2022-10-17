@@ -85,6 +85,7 @@ func (ih *IntesisHome) Devices() (devices []Device, err error) {
 	return
 }
 
+// checks to see whether a device is one that Intesis Home knows about
 func (ih *IntesisHome) HasDevice(d int64) (found bool, err error) {
 	found = false
 	devices, err := ih.Devices()
