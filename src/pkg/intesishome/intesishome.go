@@ -85,6 +85,21 @@ func (ih *IntesisHome) Devices() (devices []Device, err error) {
 	return
 }
 
+func (ih *IntesisHome) HasDevice(d int64) (found bool, err error) {
+	found = false
+	devices, err := ih.Devices()
+	if err != nil {
+		return
+	}
+	for _, dev := range devices {
+		if fmt.Sprint(d) == dev.ID {
+			found = true
+			break
+		}
+	}
+	return
+}
+
 // performs a change on a device using a uid & value
 // mappings for parameter names to values should be conducted via MapCommand
 func (ih *IntesisHome) Set(device int64, uid, value int) (err error) {

@@ -138,19 +138,12 @@ func watch(w *Watcher) {
 		intesishome.WithVerbose(w.verbose),
 		intesishome.WithHostname(w.hostname),
 	)
-	devices, err := ih.Devices()
-	if err != nil {
-		panic(err)
-	}
-	hasDevice := false
-	for _, d := range devices {
-		if fmt.Sprint(w.device) == d.ID {
-			hasDevice = true
+	if ok, err := ih.HasDevice(w.device); !ok {
+		if err != nil {
+			fmt.Println(err.Error())
 		}
-	}
-	if !hasDevice {
-		err = fmt.Errorf("unable to locate device: %v", w.device)
-		panic(err)
+		p := fmt.Sprintf("%v was not a valid device", w.device)
+		panic(p)
 	}
 	go func() {
 		for {
