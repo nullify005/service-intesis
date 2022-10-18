@@ -83,6 +83,61 @@ func TestDevices(t *testing.T) {
 	}
 }
 
+type inlineHasDeviceCheck func(t *testing.T, ok bool, e error)
+
+func TestHasDevice(t *testing.T) {
+	tests := []struct {
+		name    string
+		code    int
+		payload string
+		device  int64
+		want    inlineHasDeviceCheck
+	}{
+		{
+			"has the device",
+			http.StatusOK,
+			testValidControlResponsePayload,
+			127934703953,
+			func(t *testing.T, ok bool, err error) {
+				assert.True(t, ok)
+				assert.NoError(t, err)
+			},
+		},
+		{
+			"doesn't have the device",
+			http.StatusOK,
+			testValidControlResponsePayload,
+			12345,
+			func(t *testing.T, ok bool, err error) {
+				assert.False(t, ok)
+				assert.NoError(t, err)
+			},
+		},
+		{
+			"catch the error",
+			http.StatusBadGateway,
+			testValidControlResponsePayload,
+			12345,
+			func(t *testing.T, ok bool, err error) {
+				assert.False(t, ok)
+				assert.Error(t, err)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, err := mockHTTPServer(tt.code, tt.payload)
+			if err != nil {
+				t.Errorf("mock http server problem: %v", err.Error())
+				return
+			}
+			ih := New("u", "p", WithHostname(s.URL))
+			ok, err := ih.HasDevice(tt.device)
+			tt.want(t, ok, err)
+		})
+	}
+}
+
 type inlineStatusCheck func(t *testing.T, s map[string]interface{}, e error)
 
 func TestStatus(t *testing.T) {
