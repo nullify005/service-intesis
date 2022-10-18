@@ -14,7 +14,9 @@ securityContext:
   seccompProfile:
     type: RuntimeDefault
 service:
-  enabled: false
+  enabled: true
+  port: 2112
+  targetPort: 2112
 ingress:
   enabled: false
 resources:
@@ -43,5 +45,3 @@ args:
 - 120s
 - --secrets
 - "/.secrets/creds.yaml"
-env:
-  GIN_MODE: release

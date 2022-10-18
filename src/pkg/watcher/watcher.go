@@ -1,9 +1,13 @@
 package watcher
 
+// TODO: split the package so that the web API is in another file
+
 import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,6 +25,7 @@ const (
 	DefaultMetricsPath string        = "/metrics"
 )
 
+// holds the internal state
 var (
 	watcher state
 )
@@ -42,11 +47,25 @@ type Watcher struct {
 
 // internal state
 type state struct {
-	ih        intesishome.IntesisHome
+	ih        *intesishome.IntesisHome
 	devices   []intesishome.Device
 	status    map[string]interface{}
 	statusRaw map[string]interface{}
 	metrics   metrics.Metrics
+	mu        sync.Mutex
+}
+
+// HVAC POST request
+type HVACRequest struct {
+	Device int64       `json:"device"`
+	Param  string      `json:"param" binding:"required"`
+	Value  interface{} `json:"value" binding:"required"`
+}
+
+// HVAC GET response
+type HVACResponse struct {
+	Device intesishome.Device     `json:"device"`
+	Status map[string]interface{} `json:"status"`
 }
 
 type Option func(w *Watcher)
@@ -149,10 +168,12 @@ func (w *Watcher) Watch() {
 	log.Printf("interval: %v", w.interval)
 	log.Printf("listen: %s", w.listen)
 	watch(w)
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	router.GET(w.metricsPath, promHandler())
 	router.GET(w.healthPath, healthHandler)
 	router.GET("/hvac/:device", hvacReadHandler)
+	router.POST("/hvac/:device", hvacWriteHandler)
 	router.GET("/shutdown", shutdownHandler)
 	log.Fatal(router.Run(w.listen))
 }
@@ -161,22 +182,17 @@ func watch(w *Watcher) {
 	var err error
 	// collect the startup info 1st before entering the loop
 	// if we can't bootstrap at ths point then we should panic
-	if err = refreshState(w.device); err != nil {
-		panic(err)
-	}
 	watcher.devices, err = watcher.ih.Devices()
 	if err != nil {
+		panic(err)
+	}
+	if err = refreshState(w.device); err != nil {
 		panic(err)
 	}
 	go func() {
 		for {
 			var err error
 			time.Sleep(w.interval)
-			watcher.devices, err = watcher.ih.Devices()
-			if err != nil {
-				log.Printf("error getting devices: %v", err.Error())
-				continue
-			}
 			if err = refreshState(w.device); err != nil {
 				log.Printf("error refreshing state: %v", err.Error())
 				continue
@@ -194,6 +210,8 @@ func watch(w *Watcher) {
 }
 
 func refreshState(device int64) (err error) {
+	watcher.mu.Lock()
+	defer watcher.mu.Unlock()
 	state, err := watcher.ih.Status(device)
 	if err != nil {
 		return
@@ -219,19 +237,59 @@ func promHandler() gin.HandlerFunc {
 	}
 }
 
+// TODO: add in the device status in here too
+// should we actually append this to the Device struct?
 func hvacReadHandler(c *gin.Context) {
+	resp := HVACResponse{}
 	for _, d := range watcher.devices {
 		if c.Param("device") == d.ID {
-			c.JSON(http.StatusOK, d)
+			resp.Device = d
+			resp.Status = watcher.status
+			c.JSON(http.StatusOK, resp)
 			return
 		}
 	}
-	c.String(http.StatusNotFound, `{"error","no such device"}`)
+	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "no such device"})
+}
+
+// handles param set requests
+// try to conduct the set via the underlying API & then do a state refresh immediately after
+func hvacWriteHandler(c *gin.Context) {
+	var (
+		uid   int
+		value int
+		err   error
+	)
+	request := HVACRequest{}
+	if err = c.ShouldBindJSON(&request); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	request.Device, err = strconv.ParseInt(c.Param("device"), 10, 64)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	uid, value, err = intesishome.MapCommand(request.Param, request.Value)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err = watcher.ih.Set(request.Device, uid, value); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, request)
+	_ = refreshState(request.Device)
 }
 
 // signals the watcher that is should shutdown the observation loop & quit
 func shutdownHandler(c *gin.Context) {
-	c.String(http.StatusNotImplemented, `{"error","not implemented"}`)
+	c.AbortWithStatusJSON(http.StatusNotImplemented, gin.H{"error": "not implemented"})
 }
 
 // func toInt64(s string) (int64, error) {

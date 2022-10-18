@@ -1,0 +1,4 @@
+# ignore :latest tag definition
+KSV013
+# ignore USER specificaion in Dockerfile, we don't run as root in k8s anyway
+DS002
