@@ -8,7 +8,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build -a -ldflags="-s -w" -installsuffix cgo -v -o /service-intesis .
 
 FROM builder AS test
+RUN go install golang.org/x/vuln/cmd/govulncheck@latest
 RUN go test ./...
+RUN govulncheck ./...
 
 FROM scratch AS final
 COPY --from=builder /service-intesis /service-intesis
