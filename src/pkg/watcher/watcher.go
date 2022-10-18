@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -22,6 +21,10 @@ const (
 	DefaultMetricsPath string        = "/metrics"
 )
 
+var (
+	watcher state
+)
+
 // the watcher polls the Intesis Home cloud API for changes in state
 // and exposes for Prometheus scraping
 type Watcher struct {
@@ -35,6 +38,15 @@ type Watcher struct {
 	metricsPath string
 	verbose     bool
 	secrets     string
+}
+
+// internal state
+type state struct {
+	ih        intesishome.IntesisHome
+	devices   []intesishome.Device
+	status    map[string]interface{}
+	statusRaw map[string]interface{}
+	metrics   metrics.Metrics
 }
 
 type Option func(w *Watcher)
@@ -113,6 +125,19 @@ func New(user, pass string, device int64, opts ...Option) Watcher {
 		w.username = s.Username
 		w.password = s.Password
 	}
+	watcher.ih = intesishome.New(
+		w.username, w.password,
+		intesishome.WithVerbose(w.verbose),
+		intesishome.WithHostname(w.hostname),
+	)
+	watcher.metrics = metrics.New()
+	if ok, err := watcher.ih.HasDevice(w.device); !ok {
+		p := "device not found"
+		if err != nil {
+			p = p + "\nerror: " + err.Error()
+		}
+		panic(p)
+	}
 	return w
 }
 
@@ -127,47 +152,64 @@ func (w *Watcher) Watch() {
 	router := gin.Default()
 	router.GET(w.metricsPath, promHandler())
 	router.GET(w.healthPath, healthHandler)
-	router.GET("/hvac/:device", hvacHandlerRead)
+	router.GET("/hvac/:device", hvacReadHandler)
+	router.GET("/shutdown", shutdownHandler)
 	log.Fatal(router.Run(w.listen))
 }
 
 func watch(w *Watcher) {
-	m := metrics.New()
-	ih := intesishome.New(w.username, w.password, intesishome.WithVerbose(w.verbose))
-	if ok, err := ih.HasDevice(w.device); !ok {
-		p := "device not found"
-		if err != nil {
-			p = p + "\nerror: " + err.Error()
-		}
-		panic(p)
+	var err error
+	// collect the startup info 1st before entering the loop
+	// if we can't bootstrap at ths point then we should panic
+	if err = refreshState(w.device); err != nil {
+		panic(err)
+	}
+	watcher.devices, err = watcher.ih.Devices()
+	if err != nil {
+		panic(err)
 	}
 	go func() {
 		for {
+			var err error
 			time.Sleep(w.interval)
-			state, err := ih.Status(w.device)
+			watcher.devices, err = watcher.ih.Devices()
 			if err != nil {
-				log.Printf("error getting status: %v", err.Error())
+				log.Printf("error getting devices: %v", err.Error())
 				continue
 			}
-			mapped := make(map[string]interface{})
-			for k, v := range state {
-				mV := intesishome.DecodeState(k, v.(int))
-				mapped[k] = mV
+			if err = refreshState(w.device); err != nil {
+				log.Printf("error refreshing state: %v", err.Error())
+				continue
 			}
 			log.Printf("(%v) power: %v mode: %v temp: %v setpoint: %v",
-				w.device, mapped["power"], mapped["mode"],
-				mapped["temperature"], mapped["setpoint"],
+				w.device, watcher.status["power"], watcher.status["mode"],
+				watcher.status["temperature"], watcher.status["setpoint"],
 			)
-			m.SetPoint(float64(state["setpoint"].(int) / 10))
-			m.Temperature(float64(state["temperature"].(int) / 10))
-			m.Power(float64(state["power"].(int)))
-			m.Mode(float64(state["mode"].(int)))
+			watcher.metrics.SetPoint(float64(watcher.statusRaw["setpoint"].(int) / 10))
+			watcher.metrics.Temperature(float64(watcher.statusRaw["temperature"].(int) / 10))
+			watcher.metrics.Power(float64(watcher.statusRaw["power"].(int)))
+			watcher.metrics.Mode(float64(watcher.statusRaw["mode"].(int)))
 		}
 	}()
 }
 
+func refreshState(device int64) (err error) {
+	state, err := watcher.ih.Status(device)
+	if err != nil {
+		return
+	}
+	mapped := make(map[string]interface{})
+	for k, v := range state {
+		mV := intesishome.DecodeState(k, v.(int))
+		mapped[k] = mV
+	}
+	watcher.statusRaw = state
+	watcher.status = mapped
+	return
+}
+
 func healthHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, "ok")
+	c.String(http.StatusOK, "ok")
 }
 
 func promHandler() gin.HandlerFunc {
@@ -177,19 +219,25 @@ func promHandler() gin.HandlerFunc {
 	}
 }
 
-func hvacHandlerRead(c *gin.Context) {
-	device, err := toInt64(c.Param("device"))
-	if err != nil {
-		c.String(http.StatusBadRequest, "invalid device id")
-		return
+func hvacReadHandler(c *gin.Context) {
+	for _, d := range watcher.devices {
+		if c.Param("device") == d.ID {
+			c.JSON(http.StatusOK, d)
+			return
+		}
 	}
-	c.String(http.StatusOK, "%v", device)
+	c.String(http.StatusNotFound, `{"error","no such device"}`)
 }
 
-func toInt64(s string) (int64, error) {
-	i, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return i, nil
+// signals the watcher that is should shutdown the observation loop & quit
+func shutdownHandler(c *gin.Context) {
+	c.String(http.StatusNotImplemented, `{"error","not implemented"}`)
 }
+
+// func toInt64(s string) (int64, error) {
+// 	i, err := strconv.ParseInt(s, 10, 64)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	return i, nil
+// }
