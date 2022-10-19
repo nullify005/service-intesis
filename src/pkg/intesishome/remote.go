@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -14,7 +13,7 @@ import (
 )
 
 const (
-	controlHostname    string        = "https://user.intesishome.com"
+	DefaultHostname    string        = "https://user.intesishome.com"
 	ControlEndpoint    string        = "/api.php/get/control"
 	_statusCommand     string        = `{"status":{"hash":"x"},"config":{"hash":"x"}}`
 	_statusVersion     string        = "1.8.5"
@@ -76,6 +75,8 @@ type CommandRequestData struct {
 }
 
 func controlRequest(ih *IntesisHome) (r ControlResponse, err error) {
+	ih.mu.Lock()
+	defer ih.mu.Unlock()
 	form := statusForm(ih.username, ih.password)
 	uri := ih.hostname + ControlEndpoint
 	resp, err := http.PostForm(uri, form)
@@ -121,13 +122,11 @@ func controlRequest(ih *IntesisHome) (r ControlResponse, err error) {
 	return r, err
 }
 
-func socketWrite(ih *IntesisHome, b []byte) (response []byte, err error) {
+// TODO: debug why we are getting EOF on the read here & there
+func socketWriteRead(ih *IntesisHome, b []byte) (response []byte, err error) {
 	if ih.cmdSocket == nil {
-		ih.cmdSocket, err = net.Dial("tcp", fmt.Sprintf("%s:%v", ih.serverIP, ih.serverPort))
-		if err != nil {
-			return
-		}
-		ih.cmdSocket.SetDeadline(time.Now().Add(_socketReadTimeout))
+		err = fmt.Errorf("tcp socket was nil?")
+		return
 	}
 	if ih.verbose {
 		fmt.Printf("DEBUG|socketWrite| sending request: %s\n", string(b))

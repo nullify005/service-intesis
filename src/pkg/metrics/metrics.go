@@ -26,6 +26,15 @@ var (
 	})
 )
 
+// the exposed interface
+type Metrics interface {
+	Temperature(float64)
+	SetPoint(float64)
+	Power(float64)
+	Mode(float64)
+}
+
+// the implementation of it along with the internal state
 type metrics struct {
 	mu sync.Mutex
 }

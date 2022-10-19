@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
+	"time"
 )
 
 const (
@@ -26,28 +28,29 @@ type IntesisHome struct {
 	token      int
 	verbose    bool
 	cmdSocket  net.Conn // holder for the tcpSocket
+	mu         sync.Mutex
 }
 
 type Option func(c *IntesisHome)
 
-func New(user, pass string, opts ...Option) IntesisHome {
+func New(user, pass string, opts ...Option) *IntesisHome {
 	c := IntesisHome{
 		username: user,
 		password: pass,
-		hostname: controlHostname,
+		hostname: DefaultHostname,
 		verbose:  false,
 	}
 	for _, opt := range opts {
 		opt(&c)
 	}
-	return c
+	return &c
 }
 
 // set an alternate hostname for API calls, useful for testing
 func WithHostname(host string) Option {
 	return func(ih *IntesisHome) {
 		// set an appropriate default
-		ih.hostname = controlHostname
+		ih.hostname = DefaultHostname
 		if host == "" {
 			return
 		}
@@ -103,15 +106,35 @@ func (ih *IntesisHome) HasDevice(d int64) (found bool, err error) {
 
 // performs a change on a device using a uid & value
 // mappings for parameter names to values should be conducted via MapCommand
+// we reset & establish the connect here in order to have a single place
+// to catch & reset any connection issues with the socket
+// TODO: should there actually be some retries here?
 func (ih *IntesisHome) Set(device int64, uid, value int) (err error) {
-	var cmdResp CommandResponse
-
-	// setup a new token if there is none
-	if ih.token == 0 {
-		if _, err = controlRequest(ih); err != nil {
-			return
-		}
+	// force a refresh of the token
+	if _, err = controlRequest(ih); err != nil {
+		return
 	}
+
+	if ih.cmdSocket != nil {
+		ih.cmdSocket.Close()
+		ih.cmdSocket = nil
+	}
+	ih.cmdSocket, err = net.Dial("tcp", fmt.Sprintf("%s:%v", ih.serverIP, ih.serverPort))
+	if err != nil {
+		return
+	}
+
+	ih.cmdSocket.SetDeadline(time.Now().Add(_socketReadTimeout))
+	err = setHandler(ih, device, uid, value)
+	ih.cmdSocket.Close()
+	ih.cmdSocket = nil
+	return
+}
+
+// the inner handler for Set
+// expects that the tcp socket has been reset / cleaned for work
+func setHandler(ih *IntesisHome, device int64, uid, value int) (err error) {
+	var cmdResp CommandResponse
 
 	// authenticate
 	cmd := &CommandRequest{
@@ -124,7 +147,7 @@ func (ih *IntesisHome) Set(device int64, uid, value int) (err error) {
 	if err != nil {
 		return
 	}
-	resp, err := socketWrite(ih, bytes)
+	resp, err := socketWriteRead(ih, bytes)
 	if err != nil {
 		return
 	}
@@ -155,7 +178,7 @@ func (ih *IntesisHome) Set(device int64, uid, value int) (err error) {
 	if err != nil {
 		return
 	}
-	resp, err = socketWrite(ih, bytes)
+	resp, err = socketWriteRead(ih, bytes)
 	if err != nil {
 		return
 	}

@@ -1,11 +1,16 @@
 package watcher
 
+// TODO: split the package so that the web API is in another file
+
 import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/nullify005/service-intesis/pkg/intesishome"
 	"github.com/nullify005/service-intesis/pkg/metrics"
 	"github.com/nullify005/service-intesis/pkg/secrets"
@@ -18,6 +23,11 @@ const (
 	DefaultSecretsPath string        = "/.secrets/creds.yaml"
 	DefaultHealthPath  string        = "/health"
 	DefaultMetricsPath string        = "/metrics"
+)
+
+// holds the internal state
+var (
+	watcher state
 )
 
 // the watcher polls the Intesis Home cloud API for changes in state
@@ -33,6 +43,29 @@ type Watcher struct {
 	metricsPath string
 	verbose     bool
 	secrets     string
+}
+
+// internal state
+type state struct {
+	ih        *intesishome.IntesisHome
+	devices   []intesishome.Device
+	status    map[string]interface{}
+	statusRaw map[string]interface{}
+	metrics   metrics.Metrics
+	mu        sync.Mutex
+}
+
+// HVAC POST request
+type HVACRequest struct {
+	Device int64       `json:"device"`
+	Param  string      `json:"param" binding:"required"`
+	Value  interface{} `json:"value" binding:"required"`
+}
+
+// HVAC GET response
+type HVACResponse struct {
+	Device intesishome.Device     `json:"device"`
+	Status map[string]interface{} `json:"status"`
 }
 
 type Option func(w *Watcher)
@@ -97,6 +130,7 @@ func New(user, pass string, device int64, opts ...Option) Watcher {
 		metricsPath: DefaultMetricsPath,
 		verbose:     false,
 		secrets:     DefaultSecretsPath,
+		hostname:    intesishome.DefaultHostname,
 	}
 	for _, opt := range opts {
 		opt(&w)
@@ -110,12 +144,20 @@ func New(user, pass string, device int64, opts ...Option) Watcher {
 		w.username = s.Username
 		w.password = s.Password
 	}
+	watcher.ih = intesishome.New(
+		w.username, w.password,
+		intesishome.WithVerbose(w.verbose),
+		intesishome.WithHostname(w.hostname),
+	)
+	watcher.metrics = metrics.New()
+	if ok, err := watcher.ih.HasDevice(w.device); !ok {
+		p := "device not found"
+		if err != nil {
+			p = p + "\nerror: " + err.Error()
+		}
+		panic(p)
+	}
 	return w
-}
-
-func healthHandler(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "ok")
 }
 
 func (w *Watcher) Watch() {
@@ -126,42 +168,134 @@ func (w *Watcher) Watch() {
 	log.Printf("interval: %v", w.interval)
 	log.Printf("listen: %s", w.listen)
 	watch(w)
-	http.HandleFunc(w.healthPath, healthHandler)
-	http.Handle(w.metricsPath, promhttp.Handler())
-	log.Fatal(http.ListenAndServe(w.listen, nil))
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+	router.GET(w.metricsPath, promHandler())
+	router.GET(w.healthPath, healthHandler)
+	router.GET("/hvac/:device", hvacReadHandler)
+	router.POST("/hvac/:device", hvacWriteHandler)
+	router.GET("/shutdown", shutdownHandler)
+	log.Fatal(router.Run(w.listen))
 }
 
 func watch(w *Watcher) {
-	m := metrics.New()
-	ih := intesishome.New(w.username, w.password, intesishome.WithVerbose(w.verbose))
-	if ok, err := ih.HasDevice(w.device); !ok {
-		p := "device not found"
-		if err != nil {
-			p = p + "\nerror: " + err.Error()
-		}
-		panic(p)
+	var err error
+	// collect the startup info 1st before entering the loop
+	// if we can't bootstrap at ths point then we should panic
+	watcher.devices, err = watcher.ih.Devices()
+	if err != nil {
+		panic(err)
+	}
+	if err = refreshState(w.device); err != nil {
+		panic(err)
 	}
 	go func() {
 		for {
+			var err error
 			time.Sleep(w.interval)
-			state, err := ih.Status(w.device)
-			if err != nil {
-				log.Printf("error getting status: %v", err.Error())
+			if err = refreshState(w.device); err != nil {
+				log.Printf("error refreshing state: %v", err.Error())
 				continue
 			}
-			mapped := make(map[string]interface{})
-			for k, v := range state {
-				mV := intesishome.DecodeState(k, v.(int))
-				mapped[k] = mV
-			}
 			log.Printf("(%v) power: %v mode: %v temp: %v setpoint: %v",
-				w.device, mapped["power"], mapped["mode"],
-				mapped["temperature"], mapped["setpoint"],
+				w.device, watcher.status["power"], watcher.status["mode"],
+				watcher.status["temperature"], watcher.status["setpoint"],
 			)
-			m.SetPoint(float64(state["setpoint"].(int) / 10))
-			m.Temperature(float64(state["temperature"].(int) / 10))
-			m.Power(float64(state["power"].(int)))
-			m.Mode(float64(state["mode"].(int)))
+			watcher.metrics.SetPoint(float64(watcher.statusRaw["setpoint"].(int) / 10))
+			watcher.metrics.Temperature(float64(watcher.statusRaw["temperature"].(int) / 10))
+			watcher.metrics.Power(float64(watcher.statusRaw["power"].(int)))
+			watcher.metrics.Mode(float64(watcher.statusRaw["mode"].(int)))
 		}
 	}()
 }
+
+func refreshState(device int64) (err error) {
+	watcher.mu.Lock()
+	defer watcher.mu.Unlock()
+	state, err := watcher.ih.Status(device)
+	if err != nil {
+		return
+	}
+	mapped := make(map[string]interface{})
+	for k, v := range state {
+		mV := intesishome.DecodeState(k, v.(int))
+		mapped[k] = mV
+	}
+	watcher.statusRaw = state
+	watcher.status = mapped
+	return
+}
+
+func healthHandler(c *gin.Context) {
+	c.String(http.StatusOK, "ok")
+}
+
+func promHandler() gin.HandlerFunc {
+	p := promhttp.Handler()
+	return func(c *gin.Context) {
+		p.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
+// TODO: add in the device status in here too
+// should we actually append this to the Device struct?
+func hvacReadHandler(c *gin.Context) {
+	resp := HVACResponse{}
+	for _, d := range watcher.devices {
+		if c.Param("device") == d.ID {
+			resp.Device = d
+			resp.Status = watcher.status
+			c.JSON(http.StatusOK, resp)
+			return
+		}
+	}
+	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "no such device"})
+}
+
+// handles param set requests
+// try to conduct the set via the underlying API & then do a state refresh immediately after
+func hvacWriteHandler(c *gin.Context) {
+	var (
+		uid   int
+		value int
+		err   error
+	)
+	request := HVACRequest{}
+	if err = c.ShouldBindJSON(&request); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	request.Device, err = strconv.ParseInt(c.Param("device"), 10, 64)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	uid, value, err = intesishome.MapCommand(request.Param, request.Value)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err = watcher.ih.Set(request.Device, uid, value); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, request)
+	_ = refreshState(request.Device)
+}
+
+// signals the watcher that is should shutdown the observation loop & quit
+func shutdownHandler(c *gin.Context) {
+	c.AbortWithStatusJSON(http.StatusNotImplemented, gin.H{"error": "not implemented"})
+}
+
+// func toInt64(s string) (int64, error) {
+// 	i, err := strconv.ParseInt(s, 10, 64)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	return i, nil
+// }
