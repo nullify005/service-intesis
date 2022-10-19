@@ -34,6 +34,7 @@ var (
 				watcher.WithDuration(*_flagInterval),
 				watcher.WithListen(*_flagListen),
 				watcher.WithVerbose(flagVerbose),
+				watcher.WithHostname(flagHTTPServer),
 			)
 			w.Watch()
 		},

@@ -57,6 +57,13 @@ spec:
             {{- end }}
           {{- end }}
           {{- if .Values.secrets }}
+          {{- if .Values.env }}
+          env:
+            {{- range $key, $val := .Values.env }}
+          - name: {{ $key | quote }}
+            value: {{ $val | quote }}
+            {{- end }}
+          {{- end }}
           volumeMounts:
           - name: secrets
             mountPath: /.secrets

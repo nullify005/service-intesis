@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/nullify005/service-intesis/pkg/intesishome"
 )
 
@@ -42,15 +43,11 @@ func NewHTTPServer(opts ...HTTPOption) HTTPServer {
 }
 
 func (h *HTTPServer) Run() {
-	log.Printf("HTTPServer listening on: %s", h.Listen)
-	http.HandleFunc(intesishome.ControlEndpoint, handleEndpoint)
-	log.Fatal(http.ListenAndServe(h.Listen, nil))
+	router := gin.Default()
+	router.POST(intesishome.ControlEndpoint, handleEndpoint)
+	log.Fatal(router.Run(h.Listen))
 }
 
-func handleEndpoint(w http.ResponseWriter, r *http.Request) {
-	log.Printf("received connection from: %s", r.RemoteAddr)
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(_responsePayload); err != nil {
-		log.Printf("unable to write: %s", err.Error())
-	}
+func handleEndpoint(c *gin.Context) {
+	c.String(http.StatusOK, string(_responsePayload))
 }

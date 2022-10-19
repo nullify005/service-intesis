@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 )
 
@@ -27,6 +28,7 @@ func init() {
 	}
 }
 
+// TODO: add tests for various unhandled types
 func MapCommand(key string, value interface{}) (uid, mValue int, err error) {
 	if _, ok := _commandMap[key]; !ok {
 		err = fmt.Errorf("key not present in command map: %s", key)
@@ -39,10 +41,24 @@ func MapCommand(key string, value interface{}) (uid, mValue int, err error) {
 		// map the key to the uid
 		uid = int(_commandMap[key].(map[string]interface{})["uid"].(float64))
 	}
-	i, err := strconv.Atoi(value.(string))
-	if err == nil {
-		// it's an int so pass it back
-		mValue = i
+	// determine what the underlying type for the interface is
+	switch value.(type) {
+	case float64:
+		mValue = int(value.(float64))
+		return
+	case int:
+		mValue = value.(int)
+		return
+	case string:
+		var i int
+		i, err = strconv.Atoi(value.(string))
+		if err == nil {
+			// it's an int so pass it back
+			mValue = i
+			return
+		}
+	default:
+		err = fmt.Errorf("bad conversion type, expected float / int / string got: %s", reflect.TypeOf(value))
 		return
 	}
 	// otherwise we have to map it, reset the err

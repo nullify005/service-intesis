@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	_testValidToken   int    = 12345
 	_testAuthRequest  string = `{"command":"connect_req","data":{"deviceId":0,"uid":0,"value":0,"seqNo":0,"token":12345}}`
 	_testAuthResponse string = `{"command":"connect_rsp","data":{"status":"ok"}}`
 	_testAuthFailure  string = `{"command":"connect_rsp","data":{"status":"err_token"}}`
@@ -118,14 +119,15 @@ func TestAPICalls(t *testing.T) {
 func TestSocketCalls(t *testing.T) {
 	t.Run("invalid endpoint", func(t *testing.T) {
 		var req []byte
-		ih := New("u", "p", WithTCPServer("0.0.0.0:5000"))
-		_, err := socketWrite(&ih, req)
+		ih := IntesisHome{}
+		ih.cmdSocket = nil
+		_, err := socketWriteRead(&ih, req)
 		assert.Error(t, err)
-		assert.ErrorContains(t, err, "dial tcp")
+		assert.ErrorContains(t, err, "tcp socket was nil")
 	})
 	t.Run("write EOF", func(t *testing.T) {
 		var req []byte
-		ih := New("u", "p")
+		ih := IntesisHome{}
 		reader := func(*mockConn, []byte) (int, error) {
 			return 0, nil
 		}
@@ -134,12 +136,12 @@ func TestSocketCalls(t *testing.T) {
 		}
 		c := newMockConn(reader, writer, t)
 		ih.cmdSocket = c
-		_, err := socketWrite(&ih, req)
+		_, err := socketWriteRead(&ih, req)
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "socket write error")
 	})
 	t.Run("read EOF", func(t *testing.T) {
-		ih := New("u", "p")
+		ih := IntesisHome{}
 		reader := func(*mockConn, []byte) (int, error) {
 			return 0, errors.New("EOF")
 		}
@@ -148,12 +150,12 @@ func TestSocketCalls(t *testing.T) {
 		}
 		c := newMockConn(reader, writer, t)
 		ih.cmdSocket = c
-		_, err := socketWrite(&ih, []byte(_testAuthRequest))
+		_, err := socketWriteRead(&ih, []byte(_testAuthRequest))
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "socket read error")
 	})
 	t.Run("write mismatch", func(t *testing.T) {
-		ih := New("u", "p")
+		ih := IntesisHome{}
 		reader := func(*mockConn, []byte) (int, error) {
 			return 0, nil
 		}
@@ -162,18 +164,15 @@ func TestSocketCalls(t *testing.T) {
 		}
 		c := newMockConn(reader, writer, t)
 		ih.cmdSocket = c
-		_, err := socketWrite(&ih, []byte("string"))
+		_, err := socketWriteRead(&ih, []byte("string"))
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "write byte mismatch")
 	})
 }
 
 // scenarios: bad response payloads, unexpected payloads, EOF, timeout socket close, success
-func TestSet(t *testing.T) {
+func TestSetHandler(t *testing.T) {
 	t.Run("valid set response", func(t *testing.T) {
-		s, err := mockHTTPServer(http.StatusOK, testValidControlResponsePayload)
-		assert.NoError(t, err)
-		ih := New("u", "p", WithHostname(s.URL))
 		reader := func(c *mockConn, b []byte) (int, error) {
 			if !c.PostAuth {
 				c.PostAuth = true // auth is complete, now progress to the set
@@ -191,16 +190,15 @@ func TestSet(t *testing.T) {
 			assert.Equal(c.T, _testSetRequest, string(b))
 			return len([]byte(_testSetRequest)), nil
 		}
+		ih := IntesisHome{}
 		c := newMockConn(reader, writer, t)
 		ih.cmdSocket = c
+		ih.token = _testValidToken
 		d, _ := strconv.ParseInt(testDeviceId, 0, 64)
-		err = ih.Set(int64(d), 1 /* power */, 0 /* off */)
+		err := setHandler(&ih, int64(d), 1 /* power */, 0 /* off */)
 		assert.NoError(t, err)
 	})
 	t.Run("invalid auth token", func(t *testing.T) {
-		s, err := mockHTTPServer(http.StatusOK, testValidControlResponsePayload)
-		assert.NoError(t, err)
-		ih := New("u", "p", WithHostname(s.URL))
 		reader := func(c *mockConn, b []byte) (int, error) {
 			copy(b, []byte(_testAuthFailure))
 			return len([]byte(_testAuthFailure)), nil
@@ -209,17 +207,16 @@ func TestSet(t *testing.T) {
 			assert.Equal(c.T, _testAuthRequest, string(b))
 			return len([]byte(_testAuthRequest)), nil
 		}
+		ih := IntesisHome{}
 		c := newMockConn(reader, writer, t)
 		ih.cmdSocket = c
+		ih.token = _testValidToken
 		d, _ := strconv.ParseInt(testDeviceId, 10, 64)
-		err = ih.Set(int64(d), 1 /* power */, 0 /* off */)
+		err := setHandler(&ih, int64(d), 1 /* power */, 0 /* off */)
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "unexpected reply, expected: ok got: err_token")
 	})
 	t.Run("invalid auth response", func(t *testing.T) {
-		s, err := mockHTTPServer(http.StatusOK, testValidControlResponsePayload)
-		assert.NoError(t, err)
-		ih := New("u", "p", WithHostname(s.URL))
 		reader := func(c *mockConn, b []byte) (int, error) {
 			copy(b, []byte(_testAuthInvalid))
 			return len([]byte(_testAuthInvalid)), nil
@@ -228,17 +225,16 @@ func TestSet(t *testing.T) {
 			assert.Equal(c.T, _testAuthRequest, string(b))
 			return len([]byte(_testAuthRequest)), nil
 		}
+		ih := IntesisHome{}
 		c := newMockConn(reader, writer, t)
 		ih.cmdSocket = c
+		ih.token = _testValidToken
 		d, _ := strconv.ParseInt(testDeviceId, 10, 64)
-		err = ih.Set(int64(d), 1 /* power */, 0 /* off */)
+		err := setHandler(&ih, int64(d), 1 /* power */, 0 /* off */)
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "unexpected reply, expected: connect_rsp got: garbage")
 	})
-	t.Run("invalid set invalid", func(t *testing.T) {
-		s, err := mockHTTPServer(http.StatusOK, testValidControlResponsePayload)
-		assert.NoError(t, err)
-		ih := New("u", "p", WithHostname(s.URL))
+	t.Run("invalid set", func(t *testing.T) {
 		reader := func(c *mockConn, b []byte) (int, error) {
 			if !c.PostAuth {
 				c.PostAuth = true // auth is complete, now progress to the set
@@ -256,10 +252,12 @@ func TestSet(t *testing.T) {
 			assert.Equal(c.T, _testSetRequest, string(b))
 			return len([]byte(_testSetRequest)), nil
 		}
+		ih := IntesisHome{}
 		c := newMockConn(reader, writer, t)
 		ih.cmdSocket = c
+		ih.token = _testValidToken
 		d, _ := strconv.ParseInt(testDeviceId, 10, 64)
-		err = ih.Set(int64(d), 1 /* power */, 0 /* off */)
+		err := setHandler(&ih, int64(d), 1 /* power */, 0 /* off */)
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "set failed, expected: set_ack got: garbage")
 	})
@@ -272,6 +270,6 @@ func testControlRequest(responseCode int, payload string) (r ControlResponse, er
 		return
 	}
 	ih := New("u", "p", WithHostname(s.URL))
-	r, err = controlRequest(&ih)
+	r, err = controlRequest(ih)
 	return
 }
