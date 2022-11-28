@@ -33,9 +33,11 @@ spec:
         secret:
           secretName: secrets
           items:
-          {{- range $key, $val := .Values.secrets }}
-          - key: {{ $key }}
-            path: {{ $key }}
+          {{- with .Values.secrets }}
+          {{- range . }}
+          - key: {{ . }}
+            path: {{ . }}
+          {{- end }}
           {{- end }}
       {{- end }}
       containers:
