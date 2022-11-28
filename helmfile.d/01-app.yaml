@@ -17,7 +17,3 @@ releases:
   values:
   - ../helm/values/app/common.yaml
   - ../helm/values/app/{{ .Environment.Name }}.yaml
-  - ../secrets/app.yaml
-  {{ if eq .Environment.Name "development" }}
-  - ../secrets/version.yaml
-  {{ end }}

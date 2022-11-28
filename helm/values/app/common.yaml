@@ -45,3 +45,5 @@ args:
 - 120s
 - --secrets
 - "/.secrets/creds.yaml"
+secrets:
+- creds.yaml
