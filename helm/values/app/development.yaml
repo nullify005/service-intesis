@@ -1,0 +1,6 @@
+ingress:
+  hosts:
+  - host: service-intesis-v1.local
+    paths:
+    - path: /
+      pathType: Prefix

@@ -10,10 +10,9 @@ environments:
 
 releases:
 - name: app
-  namespace: service-intesis-{{ .Environment.Name }}-v1
+  namespace: service-intesis-v1
   createNamespace: true
   chart: ../helm/charts/service-intesis
   missingFileHandler: Warn
   values:
-  - ../helm/values/app/common.yaml
   - ../helm/values/app/{{ .Environment.Name }}.yaml

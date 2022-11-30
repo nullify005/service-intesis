@@ -1,0 +1,83 @@
+{{ if .Values.intesis.mockserver.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.intesis.mockserver.name | default "mockserver" }}
+spec:
+  type:
+  ports:
+    - port: {{ .Values.intesis.mockserver.tcpserver }}
+      targetPort: {{ .Values.intesis.mockserver.tcpserver }}
+      protocol: TCP
+      name: tcp
+    - port: {{ .Values.intesis.mockserver.httpserver }}
+      targetPort: {{ .Values.intesis.mockserver.httpserver }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ .Values.intesis.mockserver.name | default "mockserver" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.intesis.mockserver.name | default "mockserver" }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.intesis.mockserver.name | default "mockserver" }}
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "false"
+      labels:
+        app.kubernetes.io/name: {{ .Values.intesis.mockserver.name | default "mockserver" }}
+    spec:
+      serviceAccountName: app-service-intesis
+      securityContext:
+        {}
+      containers:
+        - name: {{ .Values.intesis.mockserver.name | default "mockserver" }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 10001
+            runAsNonRoot: true
+            runAsUser: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: IfNotPresent
+          command:
+            - "/service-intesis"
+          args:
+          - server
+          - --tcpserver
+          - "0.0.0.0:{{ .Values.intesis.mockserver.tcpserver }}"
+          - --httpserver
+          - "0.0.0.0:{{ .Values.intesis.mockserver.httpserver }}"
+          ports:
+          - name: tcp
+            containerPort: {{ .Values.intesis.mockserver.tcpserver }}
+            protocol: TCP
+          - name: http
+            containerPort: {{ .Values.intesis.mockserver.httpserver }}
+            protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.intesis.mockserver.httpserver }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.intesis.mockserver.httpserver }}
+          resources:
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+{{ end }}
