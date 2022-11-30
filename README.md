@@ -47,7 +47,7 @@ in `watch` we expect secrets to be located at `/.secrets/creds.yaml` containing 
 
 # building
 
-`./package.sh`
+`./lint.sh`
 
 # TODO
 
