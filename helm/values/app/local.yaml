@@ -1,3 +1,5 @@
-image:
-  repository: exporter-weather
-  tag: latest
+intesis:
+  device: "127934703953"
+  mockserver:
+    enabled: true
+  interval: 30s

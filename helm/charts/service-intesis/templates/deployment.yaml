@@ -52,11 +52,20 @@ spec:
             - {{ . | quote }}
             {{- end }}
           {{- end }}
-          {{- with .Values.args }}
           args:
-            {{- range . }}
-            - {{ . | quote }}
-            {{- end }}
+          - watch
+          - {{ .Values.intesis.device | quote }}
+          - --listen
+          - :{{ .Values.livenessProbe.port }}
+          - --interval
+          - {{ .Values.intesis.pollInterval | quote }}
+          - --secrets
+          - "/.secrets/creds.yaml"
+          {{- if .Values.intesis.mockserver.enabled }}
+          - --tcpserver
+          - "{{ .Values.intesis.mockserver.name | default "mockserver" }}:{{ .Values.intesis.mockserver.tcpserver }}"
+          - --httpserver
+          - "http://{{ .Values.intesis.mockserver.name | default "mockserver" }}:{{ .Values.intesis.mockserver.httpserver }}"
           {{- end }}
           {{- if .Values.secrets }}
           {{- if .Values.env }}

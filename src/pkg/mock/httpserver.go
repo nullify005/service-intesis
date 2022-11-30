@@ -11,6 +11,7 @@ import (
 
 const (
 	DefaultHTTPListen string = "127.0.0.1:5001"
+	healthPath        string = "/health"
 )
 
 //go:embed assets/validControlResponse.json
@@ -45,9 +46,14 @@ func NewHTTPServer(opts ...HTTPOption) HTTPServer {
 func (h *HTTPServer) Run() {
 	router := gin.Default()
 	router.POST(intesishome.ControlEndpoint, handleEndpoint)
+	router.GET(healthPath, handleHealth)
 	log.Fatal(router.Run(h.Listen))
 }
 
 func handleEndpoint(c *gin.Context) {
 	c.String(http.StatusOK, string(_responsePayload))
+}
+
+func handleHealth(c *gin.Context) {
+	c.JSON(http.StatusOK, "ok")
 }

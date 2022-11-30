@@ -5,68 +5,65 @@
 replicaCount: 1
 
 image:
-  repository: nginx
+  repository: ghcr.io/nullify005/service-intesis
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: v0.2.2
 
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
-  # Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-podAnnotations: {}
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: /metrics
+  prometheus.io/port: "2112"
 
 podSecurityContext: {}
   # fsGroup: 2000
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  allowPrivilegeEscalation: false
+  seccompProfile:
+    type: RuntimeDefault
 
 service:
-  type: ClusterIP
-  port: 80
+  enabled: true
+  port: 2112
+  targetPort: 2112
 
 ingress:
-  enabled: false
-  className: ""
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  enabled: true
+  className: traefik
   hosts:
-    - host: chart-example.local
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  - host: service-intesis-v1.localtest.me
+    paths:
+    - path: / 
+      pathType: Prefix
 
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources:
+  limits:
+    memory: 32Mi
+  requests:
+    memory: 32Mi
+
+livenessProbe:
+  path: /health
+  port: 2112
+readinessProbe:
+  path: /health
+  port: 2112
 
 autoscaling:
   enabled: false
@@ -80,3 +77,17 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+command:
+- /service-intesis
+
+secrets:
+- creds.yaml
+
+intesis:
+  device: 1
+  pollInterval: 120s
+  mockserver:
+    enabled: false
+    tcpserver: 5000
+    httpserver: 5001
