@@ -16,7 +16,7 @@ var (
 	_flagListen   *string
 	_flagSecrets  *string
 	watchCmd      = &cobra.Command{
-		Use:   "watch [-i time.Duration] [-l host:port]",
+		Use:   "watch [-i time.Duration] [-l host:port] device",
 		Short: "watch an AC Units state and expose it to prometheus scraping",
 		Args:  cobra.ExactArgs(1),
 		PreRun: func(cmd *cobra.Command, args []string) {
