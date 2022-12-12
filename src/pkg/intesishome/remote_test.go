@@ -214,7 +214,8 @@ func TestSetHandler(t *testing.T) {
 		d, _ := strconv.ParseInt(testDeviceId, 10, 64)
 		err := setHandler(&ih, int64(d), 1 /* power */, 0 /* off */)
 		assert.Error(t, err)
-		assert.ErrorContains(t, err, "unexpected reply, expected: ok got: err_token")
+		assert.ErrorContains(t, err, "unexpected auth reply.")
+		assert.ErrorContains(t, err, "expected: ok got: err_token")
 	})
 	t.Run("invalid auth response", func(t *testing.T) {
 		reader := func(c *mockConn, b []byte) (int, error) {
@@ -232,7 +233,8 @@ func TestSetHandler(t *testing.T) {
 		d, _ := strconv.ParseInt(testDeviceId, 10, 64)
 		err := setHandler(&ih, int64(d), 1 /* power */, 0 /* off */)
 		assert.Error(t, err)
-		assert.ErrorContains(t, err, "unexpected reply, expected: connect_rsp got: garbage")
+		assert.ErrorContains(t, err, "unexpected auth reply.")
+		assert.ErrorContains(t, err, "expected: connect_rsp got: garbage")
 	})
 	t.Run("invalid set", func(t *testing.T) {
 		reader := func(c *mockConn, b []byte) (int, error) {
@@ -259,7 +261,8 @@ func TestSetHandler(t *testing.T) {
 		d, _ := strconv.ParseInt(testDeviceId, 10, 64)
 		err := setHandler(&ih, int64(d), 1 /* power */, 0 /* off */)
 		assert.Error(t, err)
-		assert.ErrorContains(t, err, "set failed, expected: set_ack got: garbage")
+		assert.ErrorContains(t, err, "set command failed.")
+		assert.ErrorContains(t, err, "expected: set_ack got: garbage")
 	})
 }
 

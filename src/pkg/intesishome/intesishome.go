@@ -145,22 +145,25 @@ func setHandler(ih *IntesisHome, device int64, uid, value int) (err error) {
 	}
 	bytes, err := json.Marshal(cmd)
 	if err != nil {
-		return
+		e := fmt.Errorf("auth command encode error. auth: %v cause: %v", cmd, err)
+		return e
 	}
 	resp, err := socketWriteRead(ih, bytes)
 	if err != nil {
-		return
+		e := fmt.Errorf("auth write error. auth: %v cause: %v", cmd, err)
+		return e
 	}
 	ih.token = 0 // consume the token
 	if err = json.Unmarshal(resp, &cmdResp); err != nil {
-		return
+		e := fmt.Errorf("auth response decode error. resp: %s caused: %v", string(resp), err)
+		return e
 	}
 	if cmdResp.Command != commandRspCon {
-		err = fmt.Errorf("unexpected reply, expected: %s got: %s", commandRspCon, cmdResp.Command)
+		err = fmt.Errorf("unexpected auth reply. expected: %s got: %s", commandRspCon, cmdResp.Command)
 		return
 	}
 	if cmdResp.Data.Status != commandAuthOk {
-		err = fmt.Errorf("unexpected reply, expected: %s got: %s", commandAuthOk, cmdResp.Data.Status)
+		err = fmt.Errorf("unexpected auth reply. expected: %s got: %s", commandAuthOk, cmdResp.Data.Status)
 		return
 	}
 
@@ -176,17 +179,20 @@ func setHandler(ih *IntesisHome, device int64, uid, value int) (err error) {
 	}
 	bytes, err = json.Marshal(cmd)
 	if err != nil {
-		return
+		e := fmt.Errorf("set command encode error. cmd: %v cause: %v", cmd, err)
+		return e
 	}
 	resp, err = socketWriteRead(ih, bytes)
 	if err != nil {
-		return
+		e := fmt.Errorf("set command write error. cmd: %v cause: %v", cmd, err)
+		return e
 	}
 	if err = json.Unmarshal(resp, &cmdResp); err != nil {
-		return
+		e := fmt.Errorf("set command response error. cmd: %v response: %s cause: %v", cmd, string(resp), err)
+		return e
 	}
 	if cmdResp.Command != commandRspSet {
-		err = fmt.Errorf("set failed, expected: %s got: %s", commandRspSet, cmdResp.Command)
+		err = fmt.Errorf("set command failed. cmd: %v expected: %s got: %s", cmd, commandRspSet, cmdResp.Command)
 		return
 	}
 	return
