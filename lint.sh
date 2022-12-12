@@ -9,7 +9,7 @@ get_abs_filename() {
 
 IMG="nullify005/service-intesis:development"
 ROOT_DIR=$(dirname `get_abs_filename $0`)
-TRIVY_OPTS="--ignorefile ${ROOT_DIR}/.trivyignore --severity CRITICAL,HIGH,MEDIUM --exit-code 1"
+TRIVY_OPTS="--ignorefile ${ROOT_DIR}/.trivyignore --severity CRITICAL,HIGH,MEDIUM --exit-code 1 --skip-dirs ./secrets"
 
 # conduct a build & test
 docker build --target test .
