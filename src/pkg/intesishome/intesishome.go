@@ -213,3 +213,16 @@ func (ih *IntesisHome) Status(device int64) (state map[string]interface{}, err e
 	}
 	return
 }
+
+func (ih *IntesisHome) Token() (int, error) {
+	var token int
+	_, err := controlRequest(ih)
+	if err != nil {
+		return token, err
+	}
+	return ih.token, err
+}
+
+func (ih *IntesisHome) Controller() string {
+	return fmt.Sprintf("%s:%d", ih.serverIP, ih.serverPort)
+}
