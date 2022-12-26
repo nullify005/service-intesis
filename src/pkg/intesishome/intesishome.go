@@ -1,207 +1,61 @@
 package intesishome
 
 import (
-	"encoding/json"
 	"fmt"
-	"net"
-	"strings"
-	"sync"
-	"time"
-)
+	"log"
+	"os"
 
-const (
-	commandReqSet  string = "set"
-	commandRspSet  string = "set_ack"
-	commandReqCon  string = "connect_req"
-	commandRspCon  string = "connect_rsp"
-	commandAuthOk  string = "ok"
-	commandAuthBad string = "err_token"
+	"github.com/nullify005/service-intesis/pkg/intesishome/cloud"
+	"github.com/nullify005/service-intesis/pkg/intesishome/command"
 )
 
 type IntesisHome struct {
-	username   string
-	password   string
-	hostname   string
-	serverIP   string
-	serverPort int
-	tcpServer  string
-	token      int
-	verbose    bool
-	cmdSocket  net.Conn // holder for the tcpSocket
-	mu         sync.Mutex
+	username string
+	password string
+	cloud    *cloud.Cloud
+	command  *command.Command
+	logger   *log.Logger
 }
 
-type Option func(c *IntesisHome)
+type Option func(*IntesisHome)
 
-func New(user, pass string, opts ...Option) *IntesisHome {
-	c := IntesisHome{
-		username: user,
-		password: pass,
-		hostname: DefaultHostname,
-		verbose:  false,
-	}
-	for _, opt := range opts {
-		opt(&c)
-	}
-	return &c
-}
-
-// set an alternate hostname for API calls, useful for testing
-func WithHostname(host string) Option {
-	return func(ih *IntesisHome) {
-		// set an appropriate default
-		ih.hostname = DefaultHostname
-		if host == "" {
-			return
-		}
-		if !strings.Contains(host, "http://") {
-			ih.hostname = "http://" + host
-			return
-		}
-		ih.hostname = host
+func WithLogger(l *log.Logger) Option {
+	return func(i *IntesisHome) {
+		i.logger = l
 	}
 }
 
-// toggle the log verbosity
-func WithVerbose(v bool) Option {
-	return func(ih *IntesisHome) {
-		ih.verbose = v
+func WithCloud(c *cloud.Cloud) Option {
+	return func(i *IntesisHome) {
+		i.cloud = c
 	}
 }
 
-// override the TCPServer for HVAC Control
-func WithTCPServer(addr string) Option {
-	return func(ih *IntesisHome) {
-		ih.tcpServer = addr
+func WithCommand(c *command.Command) Option {
+	return func(i *IntesisHome) {
+		i.command = c
 	}
 }
 
-// lists the devices confgured within Intesis Home
-func (ih *IntesisHome) Devices() (devices []Device, err error) {
-	response, err := controlRequest(ih)
-	if err != nil {
-		return
+func New(username, password string, opts ...Option) *IntesisHome {
+	logger := log.New(os.Stdout, "" /* prefix */, log.Ldate|log.Ltime|log.Lshortfile)
+	i := &IntesisHome{
+		username: username,
+		password: password,
+		logger:   logger,
+		command:  command.New(command.WithLogger(logger)),
+		cloud:    cloud.New(username, password, cloud.WithLogger(logger)),
 	}
-	for _, inst := range response.Config.Inst {
-		devices = append(devices, inst.Devices...)
+	for _, o := range opts {
+		o(i)
 	}
-	return
-}
-
-// checks to see whether a device is one that Intesis Home knows about
-func (ih *IntesisHome) HasDevice(d int64) (found bool, err error) {
-	found = false
-	devices, err := ih.Devices()
-	if err != nil {
-		return
-	}
-	for _, dev := range devices {
-		if fmt.Sprint(d) == dev.ID {
-			found = true
-			break
-		}
-	}
-	return
-}
-
-// performs a change on a device using a uid & value
-// mappings for parameter names to values should be conducted via MapCommand
-// we reset & establish the connect here in order to have a single place
-// to catch & reset any connection issues with the socket
-// TODO: should there actually be some retries here?
-func (ih *IntesisHome) Set(device int64, uid, value int) (err error) {
-	// force a refresh of the token
-	if _, err = controlRequest(ih); err != nil {
-		return
-	}
-
-	if ih.cmdSocket != nil {
-		ih.cmdSocket.Close()
-		ih.cmdSocket = nil
-	}
-	ih.cmdSocket, err = net.Dial("tcp", fmt.Sprintf("%s:%v", ih.serverIP, ih.serverPort))
-	if err != nil {
-		return
-	}
-
-	ih.cmdSocket.SetDeadline(time.Now().Add(_socketReadTimeout))
-	err = setHandler(ih, device, uid, value)
-	ih.cmdSocket.Close()
-	ih.cmdSocket = nil
-	return
-}
-
-// the inner handler for Set
-// expects that the tcp socket has been reset / cleaned for work
-func setHandler(ih *IntesisHome, device int64, uid, value int) (err error) {
-	var cmdResp CommandResponse
-
-	// authenticate
-	cmd := &CommandRequest{
-		Command: commandReqCon,
-		Data: CommandRequestData{
-			Token: ih.token,
-		},
-	}
-	bytes, err := json.Marshal(cmd)
-	if err != nil {
-		e := fmt.Errorf("auth command encode error. auth: %v cause: %v", cmd, err)
-		return e
-	}
-	resp, err := socketWriteRead(ih, bytes)
-	if err != nil {
-		e := fmt.Errorf("auth write error. auth: %v cause: %v", cmd, err)
-		return e
-	}
-	ih.token = 0 // consume the token
-	if err = json.Unmarshal(resp, &cmdResp); err != nil {
-		e := fmt.Errorf("auth response decode error. resp: %s caused: %v", string(resp), err)
-		return e
-	}
-	if cmdResp.Command != commandRspCon {
-		err = fmt.Errorf("unexpected auth reply. expected: %s got: %s", commandRspCon, cmdResp.Command)
-		return
-	}
-	if cmdResp.Data.Status != commandAuthOk {
-		err = fmt.Errorf("unexpected auth reply. expected: %s got: %s", commandAuthOk, cmdResp.Data.Status)
-		return
-	}
-
-	// now write the command
-	cmd = &CommandRequest{
-		Command: commandReqSet,
-		Data: CommandRequestData{
-			DeviceID: device,
-			Uid:      uid,
-			Value:    value,
-			SeqNo:    0,
-		},
-	}
-	bytes, err = json.Marshal(cmd)
-	if err != nil {
-		e := fmt.Errorf("set command encode error. cmd: %v cause: %v", cmd, err)
-		return e
-	}
-	resp, err = socketWriteRead(ih, bytes)
-	if err != nil {
-		e := fmt.Errorf("set command write error. cmd: %v cause: %v", cmd, err)
-		return e
-	}
-	if err = json.Unmarshal(resp, &cmdResp); err != nil {
-		e := fmt.Errorf("set command response error. cmd: %v response: %s cause: %v", cmd, string(resp), err)
-		return e
-	}
-	if cmdResp.Command != commandRspSet {
-		err = fmt.Errorf("set command failed. cmd: %v expected: %s got: %s", cmd, commandRspSet, cmdResp.Command)
-		return
-	}
-	return
+	return i
 }
 
 // contacts the Intesis Home API to obtain the status of a device
-func (ih *IntesisHome) Status(device int64) (state map[string]interface{}, err error) {
+func (i *IntesisHome) Status(device int64) (state map[string]interface{}, err error) {
 	state = make(map[string]interface{})
-	response, err := controlRequest(ih)
+	response, err := i.cloud.Status()
 	if err != nil {
 		return
 	}
@@ -214,15 +68,62 @@ func (ih *IntesisHome) Status(device int64) (state map[string]interface{}, err e
 	return
 }
 
-func (ih *IntesisHome) Token() (int, error) {
-	var token int
-	_, err := controlRequest(ih)
+func (i *IntesisHome) Set(device int64, key, value int) error {
+	token, err := i.cloud.Token()
 	if err != nil {
-		return token, err
+		return fmt.Errorf("unable to get command token. cause: %v", err)
 	}
-	return ih.token, err
+	i.command.Token(token)
+	server, err := i.cloud.Command()
+	if err != nil {
+		return fmt.Errorf("unable to get command server. cause: %v", err)
+	}
+	err = i.command.Connect(server)
+	if err != nil {
+		return fmt.Errorf("unable to connect to command server. %v", err)
+	}
+	go i.command.Listen()
+	err = i.command.Set(device, key, value)
+	i.command.Close()
+	return err
 }
 
-func (ih *IntesisHome) Controller() string {
-	return fmt.Sprintf("%s:%d", ih.serverIP, ih.serverPort)
+func (i *IntesisHome) Get(device int64, key string) error {
+	return nil
+}
+
+// lists the devices confgured within Intesis Home
+func (i *IntesisHome) Devices() (devices []Device, err error) {
+	response, err := i.cloud.Status()
+	if err != nil {
+		return
+	}
+	for _, inst := range response.Config.Inst {
+		for _, d := range inst.Devices {
+			device := &Device{
+				ID:             d.ID,
+				Name:           d.Name,
+				FamilyID:       d.FamilyID,
+				ZoneID:         d.ZoneID,
+				InstallationID: d.InstallationID,
+				Order:          d.Order,
+				Widgets:        d.Widgets,
+			}
+			devices = append(devices, *device)
+		}
+	}
+	return
+}
+
+func (i *IntesisHome) HasDevice(device int64) (bool, error) {
+	devices, err := i.Devices()
+	if err != nil {
+		return false, err
+	}
+	for _, d := range devices {
+		if d.ID == fmt.Sprint(device) {
+			return true, nil
+		}
+	}
+	return false, nil
 }

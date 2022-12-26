@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/nullify005/service-intesis/pkg/intesishome"
+	"github.com/nullify005/service-intesis/pkg/intesishome/cloud"
 	"github.com/nullify005/service-intesis/pkg/metrics"
 	"github.com/nullify005/service-intesis/pkg/secrets"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -130,7 +131,7 @@ func New(user, pass string, device int64, opts ...Option) Watcher {
 		metricsPath: DefaultMetricsPath,
 		verbose:     false,
 		secrets:     DefaultSecretsPath,
-		hostname:    intesishome.DefaultHostname,
+		hostname:    cloud.Hostname,
 	}
 	for _, opt := range opts {
 		opt(&w)
@@ -144,18 +145,13 @@ func New(user, pass string, device int64, opts ...Option) Watcher {
 		w.username = s.Username
 		w.password = s.Password
 	}
+	cloud := cloud.New(w.username, w.password, cloud.WithHostname(w.hostname))
 	watcher.ih = intesishome.New(
-		w.username, w.password,
-		intesishome.WithVerbose(w.verbose),
-		intesishome.WithHostname(w.hostname),
+		w.username, w.password, intesishome.WithCloud(cloud),
 	)
 	watcher.metrics = metrics.New()
-	if ok, err := watcher.ih.HasDevice(w.device); !ok {
-		p := "device not found"
-		if err != nil {
-			p = p + "\nerror: " + err.Error()
-		}
-		panic(p)
+	if ok, _ := watcher.ih.HasDevice(w.device); !ok {
+		panic("device not found")
 	}
 	return w
 }
@@ -291,11 +287,3 @@ func hvacWriteHandler(c *gin.Context) {
 func shutdownHandler(c *gin.Context) {
 	c.AbortWithStatusJSON(http.StatusNotImplemented, gin.H{"error": "not implemented"})
 }
-
-// func toInt64(s string) (int64, error) {
-// 	i, err := strconv.ParseInt(s, 10, 64)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	return i, nil
-// }

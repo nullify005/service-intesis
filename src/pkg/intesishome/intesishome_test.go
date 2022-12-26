@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/nullify005/service-intesis/pkg/intesishome/cloud"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,7 +77,8 @@ func TestDevices(t *testing.T) {
 				t.Errorf("mock http server problem: %v", err.Error())
 				return
 			}
-			ih := New("u", "p", WithHostname(s.URL))
+			c := cloud.New("u", "p", cloud.WithHostname(s.URL))
+			ih := New("u", "p", WithCloud(c))
 			devices, err := ih.Devices()
 			tt.want(t, devices, err)
 		})
@@ -131,7 +133,8 @@ func TestHasDevice(t *testing.T) {
 				t.Errorf("mock http server problem: %v", err.Error())
 				return
 			}
-			ih := New("u", "p", WithHostname(s.URL))
+			c := cloud.New("u", "p", cloud.WithHostname(s.URL))
+			ih := New("u", "p", WithCloud(c))
 			ok, err := ih.HasDevice(tt.device)
 			tt.want(t, ok, err)
 		})
@@ -180,7 +183,8 @@ func TestStatus(t *testing.T) {
 				t.Errorf("mock http server problem: %v", err.Error())
 				return
 			}
-			ih := New("u", "p", WithHostname(s.URL))
+			c := cloud.New("u", "p", cloud.WithHostname(s.URL))
+			ih := New("u", "p", WithCloud(c))
 			d, _ := strconv.ParseInt(testDeviceId, 10, 64)
 			state, err := ih.Status(int64(d))
 			tt.want(t, state, err)

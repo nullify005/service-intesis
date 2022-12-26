@@ -21,10 +21,7 @@ var (
 			device := toInt64(args[0])
 			key := args[1]
 			val := args[2]
-			ih := intesishome.New(
-				flagUsername, flagPassword,
-				intesishome.WithVerbose(flagVerbose), intesishome.WithHostname(flagHTTPServer),
-			)
+			ih := intesishome.New(flagUsername, flagPassword)
 			// what happens when the uid isn't within the map?
 			uid, value, err := intesishome.MapCommand(key, val)
 			if err != nil {

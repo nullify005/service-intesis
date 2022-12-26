@@ -18,12 +18,9 @@ var statusCmd = &cobra.Command{
 	Short: "fetch the current status of an AC Unit",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		ih := intesishome.New(
-			flagUsername, flagPassword,
-			intesishome.WithVerbose(flagVerbose), intesishome.WithHostname(flagHTTPServer),
-		)
+		i := intesishome.New(flagUsername, flagPassword)
 		device := toInt64(args[0])
-		state, err := ih.Status(int64(device))
+		state, err := i.Status(int64(device))
 		if err != nil {
 			fmt.Printf("encountered error fetching status: %v\n", err.Error())
 			os.Exit(1)

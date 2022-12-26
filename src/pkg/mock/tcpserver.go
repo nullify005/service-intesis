@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nullify005/service-intesis/pkg/intesishome"
+	"github.com/nullify005/service-intesis/pkg/intesishome/command"
 )
 
 const (
@@ -151,8 +151,8 @@ func handleConn(c *Conn) {
 // TODO: write tests
 func handlePayload(c *Conn, p string) {
 	rand.Seed(time.Now().UnixNano()) // seed for the RSSI responses
-	var request intesishome.CommandRequest
-	var response intesishome.CommandResponse
+	var request command.Request
+	var response command.Response
 	if err := json.Unmarshal([]byte(p), &request); err != nil {
 		log.Printf("(%s) cannot unmarshal: %s", c.t, err.Error())
 		return

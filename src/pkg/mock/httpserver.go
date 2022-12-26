@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nullify005/service-intesis/pkg/intesishome"
+	"github.com/nullify005/service-intesis/pkg/intesishome/cloud"
 )
 
 const (
@@ -45,7 +45,7 @@ func NewHTTPServer(opts ...HTTPOption) HTTPServer {
 
 func (h *HTTPServer) Run() {
 	router := gin.Default()
-	router.POST(intesishome.ControlEndpoint, handleEndpoint)
+	router.POST(cloud.Endpoint, handleEndpoint)
 	router.GET(healthPath, handleHealth)
 	log.Fatal(router.Run(h.Listen))
 }
