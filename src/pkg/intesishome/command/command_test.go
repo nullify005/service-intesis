@@ -111,7 +111,7 @@ func TestSocketCalls(t *testing.T) {
 func TestSetHandler(t *testing.T) {
 	t.Run("set response success", func(t *testing.T) {
 		mock := newMockConn(responder, receiver, t)
-		c := New(WithConn(mock), WithKeepalive(1*time.Second))
+		c := New(WithConn(mock))
 		c.Token(_testValidToken)
 		go c.Listen()
 		err := c.Set(_testDeviceId, 1 /* power */, 0 /* off */)
@@ -145,7 +145,7 @@ func TestSetHandler(t *testing.T) {
 		}
 		mock := newMockConn(responder, receiver, t)
 		c := New(WithConn(mock))
-		c.Token(12345) /* an invalid token */
+		c.Token(_testValidToken)
 		go c.Listen()
 		time.Sleep(3 * time.Second) /* wait for the auth to fail */
 		err := c.Err()
@@ -171,7 +171,7 @@ func TestSetHandler(t *testing.T) {
 		assert.ErrorContains(t, err, "invalid auth response")
 		// assert.ErrorContains(t, err, "got: garbage")
 	})
-	t.Run("set response success", func(t *testing.T) {
+	t.Run("set response invalid", func(t *testing.T) {
 		receiver := func(c *mockConn, b []byte) (int, error) {
 			switch string(b) {
 			case _testAuthRequest:
@@ -182,11 +182,12 @@ func TestSetHandler(t *testing.T) {
 			return len(b), nil
 		}
 		mock := newMockConn(responder, receiver, t)
-		c := New(WithConn(mock), WithKeepalive(1*time.Second))
+		c := New(WithConn(mock))
 		c.Token(_testValidToken)
 		go c.Listen()
 		err := c.Set(_testDeviceId, 1 /* power */, 0 /* off */)
-		assert.NoError(t, err)
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "timeout waiting for set response")
 	})
 }
 

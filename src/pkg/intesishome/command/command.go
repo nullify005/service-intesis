@@ -253,15 +253,18 @@ func cmdHandler(c *Command, r *Response) {
 
 func socketReader(c *Command, outputC chan string, errC chan error) {
 	scanner := bufio.NewScanner(c.conn)
-	scanner.Split(doubleBraceSplit)
-	for scanner.Scan() {
+	scanner.Split(jsonSplit)
+	for {
+		scanner.Scan()
+		if err := scanner.Err(); err != nil {
+			c.logger.Printf("scanner error. cause: %v", err)
+			errC <- err
+			return
+		}
 		buf := scanner.Bytes()
 		buf = bytes.Trim(buf, "\x00") // trim any nulls from the end
 		c.logger.Printf("scanner received: %s", buf)
 		outputC <- string(buf)
-	}
-	if err := scanner.Err(); err != nil {
-		errC <- err
 	}
 }
 
@@ -299,6 +302,40 @@ func socketWrite(c *Command, thing interface{}) error {
 		return fmt.Errorf(e)
 	}
 	return nil
+}
+
+func jsonSplit(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	l := log.New(os.Stdout, "" /* prefix */, log.Ldate|log.Ltime|log.Lshortfile)
+	if atEOF && len(data) == 0 {
+		l.Print("at EOF with no data")
+		return 0, nil, nil
+	}
+
+	start := -1
+	opens := 0
+	closes := 0
+	l.Printf("processing: %s", data)
+	for i := 0; i < len(data); i++ {
+		if data[i] == '{' {
+			if start == -1 {
+				start = i
+			}
+			opens++
+		}
+		if data[i] == '}' {
+			closes++
+			if opens == closes {
+				l.Printf("found json payload: %s", data[start:i+1])
+				return i + 1, data[start : i+1], nil
+			}
+		}
+	}
+
+	if atEOF {
+		l.Printf("at EOF with data: %s", data)
+		return len(data), data, nil
+	}
+	return 0, nil, nil
 }
 
 func doubleBraceSplit(data []byte, atEOF bool) (advance int, token []byte, err error) {

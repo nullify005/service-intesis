@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -115,6 +116,40 @@ func splitDoubleEndBrace(data []byte, atEOF bool) (advance int, token []byte, er
 	return 0, nil, nil
 }
 
+func jsonSplit(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	l := log.New(os.Stdout, "" /* prefix */, log.Ldate|log.Ltime|log.Lshortfile)
+	if atEOF && len(data) == 0 {
+		l.Print("at EOF with no data")
+		return 0, nil, nil
+	}
+
+	start := -1
+	opens := 0
+	closes := 0
+	l.Printf("processing: %s", data)
+	for i := 0; i < len(data); i++ {
+		if data[i] == '{' {
+			if start == -1 {
+				start = i
+			}
+			opens++
+		}
+		if data[i] == '}' {
+			closes++
+			if opens == closes {
+				l.Printf("found json payload: %s", data[start:i+1])
+				return i + 1, data[start : i+1], nil
+			}
+		}
+	}
+
+	if atEOF {
+		l.Printf("at EOF with data: %s", data)
+		return len(data), data, nil
+	}
+	return 0, nil, nil
+}
+
 // TODO: move this into the scanner func?
 func jsonPayload(p string) (string, error) {
 	b := []byte(p)
@@ -132,7 +167,7 @@ func handleConn(c *Conn) {
 	limit := &io.LimitedReader{R: c.c, N: int64(c.readLimitBytes)}
 	log.Printf("(%s) received connection from: %s", c.t, c.c.RemoteAddr().String())
 	s := bufio.NewScanner(limit)
-	s.Split(splitDoubleEndBrace)
+	s.Split(jsonSplit)
 	for s.Scan() {
 		j, err := jsonPayload(s.Text())
 		if err != nil {
@@ -197,6 +232,16 @@ func handlePayload(c *Conn, p string) {
 		r, err := json.Marshal(response)
 		if err != nil {
 			log.Printf("(%s) cannot marshal response: %s", c.t, err.Error())
+			return
+		}
+		c.c.Write(r)
+	case "get":
+		// this is a keepalive
+		response.Command = "status"
+		response.Data.Rssi = rand.Intn(rssiCeil)
+		r, err := json.Marshal(response)
+		if err != nil {
+			log.Printf("(%s) cannot marshal response: %v", c.t, err)
 			return
 		}
 		c.c.Write(r)

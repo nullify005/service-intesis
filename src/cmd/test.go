@@ -14,40 +14,61 @@ import (
 var testCmd = &cobra.Command{
 	Use:   "test <device>",
 	Short: "testing function for async socket handling",
-	Args:  cobra.ExactArgs(1),
+	// Args:  cobra.ExactArgs(1),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		flags := cmd.InheritedFlags()
+		// disable parent required flags since we're hoping to use a secrets file
+		flags.SetAnnotation("username", cobra.BashCompOneRequiredFlag, []string{"false"})
+		flags.SetAnnotation("password", cobra.BashCompOneRequiredFlag, []string{"false"})
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		logger := log.New(os.Stdout, "" /* no prefix */, log.Ldate|log.Ltime|log.Lshortfile)
 		logger.Print("not implemented")
-
-		// ih := intesishome.New(flagUsername, flagPassword)
-		// device := toInt64(args[0])
-		// token, err := ih.Token()
-		// if err != nil {
-		// 	logger.Fatalf("problem fetching token. cause: %v", err)
+		// jsonEvt := make(chan []byte)
+		// go func() {
+		// 	logger.Print("now reading from stdin")
+		// 	var buf []byte
+		// 	for {
+		// 		os.Stdin.Read()
+		// 		read, err := io.ReadAll(os.Stdin)
+		// 		buf = append(buf, read...)
+		// 		if err != nil {
+		// 			logger.Printf("read error. cause: %v", err)
+		// 			return
+		// 		}
+		// 		logger.Printf("the buf is: %s", buf)
+		// 		start := -1
+		// 		opens := 0
+		// 		closes := 0
+		// 		for i := 0; i < len(buf); i++ {
+		// 			logger.Printf("looking at: %c", buf[i])
+		// 			if buf[i] == '{' {
+		// 				logger.Print("found an open")
+		// 				if start == -1 {
+		// 					start = i
+		// 					logger.Printf("start is at: %d", start)
+		// 				}
+		// 				opens++
+		// 				logger.Printf("opens: %d", opens)
+		// 			}
+		// 			if buf[i] == '}' {
+		// 				logger.Print("found a close")
+		// 				closes++
+		// 				logger.Printf("closes: %d", closes)
+		// 				if opens == closes {
+		// 					logger.Printf("end is at: %d", i)
+		// 					logger.Printf("json payload is: %s", buf[start:i+1])
+		// 					jsonEvt <- buf[start : i+1]
+		// 					buf = slices.Delete(buf, start, i+1)
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }()
+		// for {
+		// 	json := <-jsonEvt
+		// 	logger.Printf("received json payload: %s", json)
 		// }
-		// logger.Printf("received auth token: %d", token)
-		// a := command.New(device, token, command.WithLogger(logger), command.WithKeepalive(10*time.Second))
-		// err = a.Connect(ih.Controller())
-		// if err != nil {
-		// 	logger.Fatalf("problem connecting to: %s cause: %v", ih.Controller(), err)
-		// }
-		// logger.Printf("controller is at: %s", ih.Controller())
-		// // err = a.Auth(token)
-		// // if err != nil {
-		// // 	logger.Fatalf("problem authenticating with controller. cause: %v", err)
-		// // }
-		// // logger.Print("authenticated")
-		// go a.Listen()
-		// time.Sleep(20 * time.Second)
-		// if err := a.Set(1, 1); err != nil {
-		// 	logger.Printf("error conducting set. cause: %v", err)
-		// }
-		// time.Sleep(20 * time.Second)
-		// if err := a.Set(1, 0); err != nil {
-		// 	logger.Printf("error conducting set. cause: %v", err)
-		// }
-		// time.Sleep(20 * time.Second)
-		// a.Close()
 	},
 }
 
