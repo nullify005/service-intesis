@@ -49,14 +49,14 @@ jobs:
         tags: |
           type=sha
     - name: test
-      uses: docker/bake-action@v2
+      uses: docker/bake-action@v3
       with:
         files: |
           ./docker-bake.hcl
           ${{ steps.meta.outputs.bake-file }}
         targets: test
     - name: build
-      uses: docker/bake-action@v2
+      uses: docker/bake-action@v3
       with:
         files: |
           ./docker-bake.hcl
